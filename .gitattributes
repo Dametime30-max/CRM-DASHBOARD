@@ -1,0 +1,2 @@
+# Keep Windows line endings in the Notepad README exactly as written.
+*.txt -text

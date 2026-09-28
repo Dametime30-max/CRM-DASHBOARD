@@ -5,7 +5,17 @@
 > This is a workflow aid only. Checklist prompts are not legal advice and do not
 > replace the firm's precedents, procedures or supervision.
 
-The whole application is one file: **`wills-dashboard.html`**.
+The whole application is one file: **`Wills Matter Dashboard/wills-dashboard.html`**.
+
+The `Wills Matter Dashboard/` folder is designed to be copied to your Windows Desktop:
+
+```
+Wills Matter Dashboard/
+    wills-dashboard.html          <- the application (double-click)
+    README.txt                    <- plain-language instructions
+    BACKUP/
+        wills-dashboard-backup.html  <- spare copy of the application
+```
 
 - No installation, no administrator access, no server, no internet connection.
 - Plain HTML, CSS and JavaScript. No external libraries, fonts, images or APIs.
@@ -14,7 +24,7 @@ The whole application is one file: **`wills-dashboard.html`**.
 ## How to open it (Windows)
 
 1. On GitHub, open the repository and switch to the branch `claude/adoring-keller-fqk9wp`.
-2. Click **`wills-dashboard.html`**, then click the **Download raw file** button (the download arrow).
+2. Open the `Wills Matter Dashboard` folder, click **`wills-dashboard.html`**, then click the **Download raw file** button (the download arrow).
 3. Save it somewhere you'll find it again, for example `Documents\Wills Prototype\`.
 4. Double-click the file. It opens in your default browser.
    If it opens in a different program, right-click it and choose
@@ -28,13 +38,14 @@ These buttons are in the left sidebar, under **Prototype data**:
 
 | Button | What it does |
 |---|---|
-| **Export Data** | Downloads all current data as `wills-dashboard-export-YYYY-MM-DD.json` to your Downloads folder. |
+| **Export Data** | Downloads all current data as `wills-dashboard-export-YYYY-MM-DD.json` to your Downloads folder. Move it into `BACKUP/` to keep it. |
 | **Import Data** | Choose a previously exported `.json` file. It asks for confirmation, then **replaces** all current data. |
 | **Reset Sample Data** | Asks for confirmation, then deletes everything and reloads the 8 fictional sample matters and the default template. |
 
 The data lives in the browser, not in the HTML file. So:
 
-- Replacing the HTML file with a newer version keeps your data.
+- Replacing, moving or renaming the HTML file keeps your data. Any copy of the file,
+  including the one in `BACKUP/`, opens the **same** data in the same browser.
 - **Clearing browsing data** (or a work policy that clears it when the browser
   closes) deletes it. Use **Export Data** if you want to keep a copy.
 

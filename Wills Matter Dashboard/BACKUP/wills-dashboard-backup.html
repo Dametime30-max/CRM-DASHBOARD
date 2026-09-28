@@ -1,0 +1,2307 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<!-- Block ALL network access: this page may only use its own inline code/styles. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'">
+<title>Wills Matter Dashboard — Prototype</title>
+<!--
+  Wills Matter Dashboard — single-file browser prototype.
+  Open this file directly in Microsoft Edge or Google Chrome (double-click).
+  No server, no installation, no network access.
+  PROTOTYPE ONLY: data is kept in this browser's localStorage and is NOT encrypted.
+  Checklist items are workflow prompts only and are not legal advice.
+-->
+<style>
+:root{
+  --navy-900:#14233a; --navy-800:#1b2e4a; --navy-700:#243d61; --navy-600:#2f5080; --navy-100:#e3e9f2; --navy-50:#f1f4f9;
+  --ink:#1c2430; --ink-2:#3d4757; --muted:#6b7482; --faint:#9aa2ae;
+  --line:#dfe3e8; --line-2:#eceff3; --bg:#f5f6f8; --white:#fff;
+  --red:#b42318; --red-bg:#fdf1f0; --red-line:#f3c6c1;
+  --amber:#9a5b00; --amber-bg:#fdf6e7; --amber-line:#efd9a6;
+  --green:#1d6b43; --green-bg:#ecf6f0; --green-line:#bfe0cc;
+  --blue:#1f5a8a; --blue-bg:#eef5fb; --blue-line:#c5dcef;
+  --violet:#4b3f8f; --violet-bg:#f2f0fa; --violet-line:#d6d0ef;
+  --slate-bg:#f0f2f5; --slate-line:#d9dde3;
+  --serif: Georgia, "Times New Roman", serif;
+  --sans: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --radius:6px;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;padding:0}
+body{font-family:var(--sans);font-size:14px;line-height:1.5;color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased}
+a{color:var(--navy-600);text-decoration:none}
+a:hover{text-decoration:underline}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--navy-600);outline-offset:2px}
+h1,h2,h3,h4{margin:0;font-weight:600;color:var(--ink)}
+
+/* ---------- Layout ---------- */
+.app{display:flex;min-height:100vh}
+.sidebar{width:236px;flex-shrink:0;background:var(--navy-900);color:#cfd8e6;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.brand{padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,.08)}
+.brand .t{font-family:var(--serif);font-size:17px;color:#fff;letter-spacing:.2px}
+.brand .s{font-size:11.5px;color:#9fb0c8;margin-top:2px}
+.nav{padding:14px 10px;display:flex;flex-direction:column;gap:2px}
+.nav a{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:5px;color:#c3cedf;font-weight:500;border-left:3px solid transparent}
+.nav a:hover{background:rgba(255,255,255,.05);color:#fff;text-decoration:none}
+.nav a.active{background:rgba(255,255,255,.1);color:#fff;border-left-color:#8fb3e0}
+.nav svg{width:16px;height:16px;flex-shrink:0;opacity:.85}
+.side-data{margin-top:auto;padding:16px 16px 18px;border-top:1px solid rgba(255,255,255,.08);font-size:12px}
+.side-data .h{font-size:10.5px;letter-spacing:.8px;text-transform:uppercase;color:#8ea0ba;font-weight:600;margin-bottom:8px}
+.side-data button{display:block;width:100%;text-align:left;background:transparent;border:1px solid rgba(255,255,255,.14);color:#dbe3ef;border-radius:5px;padding:7px 10px;margin-bottom:6px;cursor:pointer;font-size:12.5px}
+.side-data button:hover{background:rgba(255,255,255,.07)}
+.side-data button.reset{border-color:rgba(255,160,150,.35);color:#ffd2cc}
+.side-data p{margin:8px 0 0;color:#8ea0ba;line-height:1.45;font-size:11.5px}
+.main-col{flex:1;min-width:0;display:flex;flex-direction:column}
+.proto-banner{background:#fff4d6;border-bottom:1px solid #edd79c;color:#6b4a00;font-size:12.5px;padding:7px 24px;text-align:center}
+.proto-banner strong{letter-spacing:.3px}
+.storage-warn{background:var(--red-bg);border-bottom:1px solid var(--red-line);color:var(--red);font-size:12.5px;padding:7px 24px;text-align:center}
+main{flex:1;padding:28px 32px 40px;max-width:1380px;width:100%;margin:0 auto}
+footer.foot{border-top:1px solid var(--line);padding:14px 24px;font-size:12px;color:var(--muted);text-align:center;background:#fff}
+
+/* ---------- Page header ---------- */
+.page-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.page-head h1{font-family:var(--serif);font-size:26px;font-weight:600;letter-spacing:.1px}
+.page-head .sub{color:var(--muted);margin-top:3px;font-size:13px}
+.crumbs{font-size:12.5px;color:var(--muted);margin-bottom:10px}
+.crumbs a{color:var(--muted)} .crumbs .sep{margin:0 6px}
+
+/* ---------- Cards / panels ---------- */
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius)}
+.card + .card{margin-top:18px}
+.grid > .card + .card{margin-top:0}
+.card-h{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 18px;border-bottom:1px solid var(--line)}
+.card-h h2{font-size:14.5px}
+.card-h .aside{font-size:12px;color:var(--muted)}
+.card-b{padding:16px 18px}
+.grid{display:grid;gap:18px}
+.g-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g-3-2{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}
+.stack > * + *{margin-top:18px}
+.empty{padding:22px 18px;color:var(--muted);font-size:13px}
+
+/* KPI */
+.kpi{padding:16px 18px;display:block;color:inherit;border-left:3px solid var(--line)}
+.kpi:hover{text-decoration:none;border-color:var(--navy-600)}
+.kpi .l{font-size:11.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:600}
+.kpi .v{font-size:30px;font-weight:600;margin-top:4px;font-variant-numeric:tabular-nums;color:var(--ink)}
+.kpi .d{font-size:12px;color:var(--muted)}
+.kpi.red{border-left-color:var(--red)} .kpi.red .v{color:var(--red)}
+.kpi.amber{border-left-color:#d49a2a} .kpi.amber .v{color:var(--amber)}
+.kpi.blue{border-left-color:var(--navy-600)}
+
+/* ---------- Buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:5px;padding:7px 14px;font-size:13.5px;font-weight:500;cursor:pointer;border:1px solid transparent;white-space:nowrap;line-height:1.3;text-decoration:none!important}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--navy-700);color:#fff;border-color:var(--navy-700)}
+.btn-primary:hover{background:var(--navy-800)}
+.btn-secondary{background:#fff;color:var(--ink-2);border-color:#c9cfd8}
+.btn-secondary:hover{background:var(--navy-50)}
+.btn-ghost{background:transparent;color:var(--ink-2)}
+.btn-ghost:hover{background:var(--slate-bg)}
+.btn-danger{background:#fff;color:var(--red);border-color:var(--red-line)}
+.btn-danger:hover{background:var(--red-bg)}
+.btn-sm{padding:4px 10px;font-size:12.5px}
+.btn-xs{padding:2px 8px;font-size:12px}
+.linkbtn{background:none;border:none;padding:0;color:var(--navy-600);cursor:pointer;font-size:12.5px}
+.linkbtn:hover{text-decoration:underline}
+.linkbtn.danger{color:var(--red)}
+
+/* ---------- Badges ---------- */
+.badge{display:inline-block;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:500;border:1px solid;white-space:nowrap;line-height:1.55}
+.b-slate{background:var(--slate-bg);border-color:var(--slate-line);color:#4a5462}
+.b-blue{background:var(--blue-bg);border-color:var(--blue-line);color:var(--blue)}
+.b-amber{background:var(--amber-bg);border-color:var(--amber-line);color:var(--amber)}
+.b-green{background:var(--green-bg);border-color:var(--green-line);color:var(--green)}
+.b-red{background:var(--red-bg);border-color:var(--red-line);color:var(--red)}
+.b-violet{background:var(--violet-bg);border-color:var(--violet-line);color:var(--violet)}
+.sample{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.8px;color:#7a5a00;background:#fff7dc;border:1px dashed #d9b95c;border-radius:3px;padding:0 5px;line-height:1.7;vertical-align:middle;white-space:nowrap}
+
+/* ---------- Tables ---------- */
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line)}
+.toolbar .grow{flex:1;min-width:220px}
+.tbl-wrap{overflow-x:auto}
+table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+.tbl th{text-align:left;font-size:11.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);font-weight:600;padding:9px 12px;border-bottom:1px solid var(--line);background:#fafbfc;white-space:nowrap}
+.tbl td{padding:11px 12px;border-bottom:1px solid var(--line-2);vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr.row-link{cursor:pointer}
+.tbl tr.row-link:hover td{background:#f8fafc}
+.tbl tr.flag-red td:first-child{box-shadow:inset 3px 0 0 var(--red)}
+.tbl tr.flag-amber td:first-child{box-shadow:inset 3px 0 0 #d49a2a}
+.tbl .client{font-weight:600;color:var(--ink)}
+.tbl td.c-client{min-width:150px}
+.tbl td.c-next{min-width:150px;max-width:220px}
+.tbl .mono,.mono{font-family:Consolas,"Cascadia Mono","Courier New",monospace;font-size:12.5px}
+.tbl .small,.small{font-size:12px;color:var(--muted)}
+.tbl-foot{padding:9px 16px;font-size:12px;color:var(--muted);border-top:1px solid var(--line-2)}
+.nowrap{white-space:nowrap}
+
+/* progress */
+.pbar{height:6px;background:#e4e8ee;border-radius:99px;overflow:hidden}
+.pbar > span{display:block;height:100%;background:var(--navy-600);border-radius:99px}
+.pbar.done > span{background:var(--green)}
+.pcell{display:flex;align-items:center;gap:8px;min-width:110px}
+.pcell .pbar{flex:1}
+.pcell .n{width:34px;text-align:right;font-size:12px;font-variant-numeric:tabular-nums;color:var(--ink-2)}
+
+/* due labels */
+.due{font-size:12px;font-weight:500;margin-left:6px}
+.due.red{color:var(--red)} .due.amber{color:var(--amber)} .due.grey{color:var(--muted)}
+
+/* ---------- Forms ---------- */
+.input,select.input,textarea.input{display:block;width:100%;border:1px solid #c9cfd8;border-radius:5px;background:#fff;padding:7px 10px;font-size:13.5px;line-height:1.4}
+.input:focus{border-color:var(--navy-600);outline:none;box-shadow:0 0 0 3px var(--navy-100)}
+.input.err{border-color:#d98b83}
+.input.err:focus{box-shadow:0 0 0 3px #f7dcd8}
+textarea.input{resize:vertical;min-height:62px}
+select.input.auto,.input.auto{width:auto}
+.field label.lbl{display:block;font-size:12px;font-weight:600;color:var(--ink-2);margin-bottom:4px}
+.field .req{color:var(--red)}
+.field .hint{font-size:12px;color:var(--muted);margin-top:3px}
+.field .error{font-size:12px;color:var(--red);margin-top:4px}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px}
+.form-grid .wide{grid-column:1/-1}
+.form-section{display:grid;grid-template-columns:220px minmax(0,1fr);gap:24px;padding:22px 22px}
+.form-section + .form-section{border-top:1px solid var(--line)}
+.form-section .fs-h h2{font-size:14.5px}
+.form-section .fs-h p{font-size:12.5px;color:var(--muted);margin:5px 0 0}
+.form-actions{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:16px 22px;border-top:1px solid var(--line);background:#fafbfc;border-radius:0 0 var(--radius) var(--radius)}
+.alert{border-radius:5px;padding:10px 14px;font-size:13px;margin-bottom:16px;border:1px solid}
+.alert.err{background:var(--red-bg);border-color:var(--red-line);color:var(--red)}
+.alert.info{background:var(--blue-bg);border-color:var(--blue-line);color:var(--blue)}
+.alert.warn{background:var(--amber-bg);border-color:var(--amber-line);color:var(--amber)}
+
+/* Yes/No questions */
+.q-list{display:flex;flex-direction:column}
+.q{padding:10px 0;border-bottom:1px solid var(--line-2)}
+.q:last-child{border-bottom:none}
+.q-row{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.q-row .ql{font-size:13.5px;color:var(--ink)}
+.yn{display:inline-flex;border:1px solid #c9cfd8;border-radius:5px;overflow:hidden;flex-shrink:0}
+.yn label{cursor:pointer;margin:0}
+.yn input{position:absolute;opacity:0;pointer-events:none}
+.yn span{display:block;padding:4px 14px;font-size:12.5px;color:var(--ink-2);background:#fff;min-width:48px;text-align:center}
+.yn label + label span{border-left:1px solid #c9cfd8}
+.yn input:checked + span{background:var(--navy-700);color:#fff}
+.yn input:focus-visible + span{outline:2px solid var(--navy-600);outline-offset:-2px}
+.subfields{margin:10px 0 2px 14px;padding:12px 14px;border-left:3px solid var(--navy-100);background:var(--navy-50);border-radius:0 5px 5px 0}
+.subfields .q{border-bottom-color:#e2e8f0}
+.subfields .form-grid{gap:10px 14px}
+.trig-note{font-size:11.5px;color:var(--violet);margin-top:6px}
+
+/* ---------- Matter header & tabs ---------- */
+.m-head{background:#fff;border:1px solid var(--line);border-radius:var(--radius);margin-bottom:18px}
+.m-head-top{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;padding:18px 22px 14px}
+.m-head h1{font-family:var(--serif);font-size:25px}
+.m-meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:6px;font-size:13px;color:var(--ink-2)}
+.m-meta .k{color:var(--muted)}
+.m-ctrls{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.m-ctrls .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.m-ctrls label{font-size:11.5px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.m-prog{width:260px}
+.m-prog .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+.m-prog .pct{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
+.tabs{display:flex;gap:2px;overflow-x:auto;border-top:1px solid var(--line);padding:0 12px}
+.tabs a{padding:10px 11px;font-size:13px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.tabs a:hover{color:var(--ink);text-decoration:none}
+.tabs a.active{color:var(--navy-800);border-bottom-color:var(--navy-700)}
+.tabs .cnt{font-size:11px;background:var(--slate-bg);color:#4a5462;border-radius:99px;padding:0 6px;font-variant-numeric:tabular-nums}
+.tabs .cnt.red{background:var(--red-bg);color:var(--red)}
+
+/* Attention panel */
+.attn{border:1px solid #c7d4e6;border-radius:var(--radius);background:#fff;margin-bottom:18px;overflow:hidden}
+.attn-h{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 18px;background:#eef3f9;border-bottom:1px solid #d6e0ee}
+.attn-h h2{font-size:14px;letter-spacing:.6px;text-transform:uppercase;color:var(--navy-800)}
+.attn-h .s{font-size:12.5px;color:var(--ink-2);margin-top:2px}
+.attn-list{list-style:none;margin:0;padding:8px 10px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 12px}
+.attn-list li a{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:4px;border-left:3px solid var(--line);color:inherit}
+.attn-list li a:hover{background:#f7f9fb;text-decoration:none}
+.attn-list .lv-overdue{border-left-color:var(--red);background:#fffafa}
+.attn-list .lv-soon{border-left-color:#d49a2a}
+.attn-list .lv-waiting{border-left-color:var(--violet)}
+.attn-list .lv-info{border-left-color:var(--line)}
+.attn-list .t{font-size:13.5px;font-weight:500}
+.attn-list .d{font-size:12px;color:var(--muted)}
+
+/* ---------- Checklist ---------- */
+.stage{background:#fff;border:1px solid var(--line);border-radius:var(--radius);margin-bottom:16px;overflow:hidden}
+.stage-h{display:flex;align-items:center;gap:16px;padding:13px 18px;border-bottom:1px solid var(--line)}
+.stage-h .n{font-size:10.5px;letter-spacing:.8px;text-transform:uppercase;color:var(--faint);font-weight:700}
+.stage-h h3{font-size:14.5px}
+.stage-h .grow{flex:1;min-width:0}
+.stage-h .sp{display:flex;align-items:center;gap:10px;width:200px}
+.stage-h .sp .pbar{flex:1}
+.stage-h .sp span{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;width:50px;text-align:right}
+.sub-h{padding:8px 18px;font-size:11px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;background:#fafbfc;border-bottom:1px solid var(--line-2);color:var(--muted)}
+.sub-h.add{background:var(--violet-bg);color:var(--violet);border-top:1px solid var(--violet-line)}
+.items{list-style:none;margin:0;padding:0}
+.item{display:flex;gap:12px;padding:11px 18px;border-bottom:1px solid var(--line-2)}
+.item:last-child{border-bottom:none}
+.item.cond{box-shadow:inset 3px 0 0 var(--violet-line)}
+.item.is-done{background:#fbfcfd}
+.item.is-na{background:#fafafa}
+.item.flash{animation:flash 2s ease-out}
+@keyframes flash{0%{background:#fff3c4}100%{background:transparent}}
+.cbx{width:19px;height:19px;border:1.5px solid #aab3c0;border-radius:4px;background:#fff;flex-shrink:0;margin-top:1px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;color:#fff}
+.cbx:hover{border-color:var(--navy-600)}
+.cbx.on{background:var(--green);border-color:var(--green)}
+.cbx.na{background:#eceff3;border-color:#c5ccd6;color:#7a8391;cursor:default}
+.cbx svg{width:12px;height:12px}
+.item .body{flex:1;min-width:0}
+.item .txt{font-size:13.5px;color:var(--ink)}
+.item.is-done .txt{color:var(--muted);text-decoration:line-through;text-decoration-color:#c0c7d1}
+.item.is-na .txt{color:var(--faint);text-decoration:line-through}
+.item .guid{font-size:12px;color:var(--muted);margin-top:1px}
+.item .meta{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:4px;font-size:11.5px;align-items:center}
+.st{font-weight:600}
+.st.open{color:var(--amber)} .st.done{color:var(--green)} .st.na{color:var(--faint)}
+.trig{color:var(--violet);background:var(--violet-bg);border:1px solid var(--violet-line);border-radius:3px;padding:0 5px}
+.item .note{margin-top:6px;font-size:12.5px;background:var(--navy-50);border-left:2px solid var(--navy-100);padding:6px 10px;border-radius:0 4px 4px 0;white-space:pre-wrap;color:var(--ink-2)}
+.item .acts{display:flex;gap:4px;flex-shrink:0;align-items:flex-start}
+.note-form{margin-top:8px}
+.note-form .row{display:flex;gap:6px;margin-top:6px}
+
+/* Stage progress list */
+.sp-list{list-style:none;margin:0;padding:0}
+.sp-list li a{display:grid;grid-template-columns:26px minmax(0,1fr) 110px 58px;gap:12px;align-items:center;padding:9px 18px;border-bottom:1px solid var(--line-2);color:inherit}
+.sp-list li:last-child a{border-bottom:none}
+.sp-list li a:hover{background:#f8fafc;text-decoration:none}
+.sp-list .num{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:var(--slate-bg);color:var(--muted)}
+.sp-list .num.done{background:var(--green-bg);color:var(--green)}
+.sp-list .num.cur{background:var(--navy-700);color:#fff}
+.sp-list .c{font-size:12px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+
+/* Details list */
+dl.dl{margin:0}
+dl.dl > div{display:grid;grid-template-columns:170px minmax(0,1fr);gap:12px;padding:8px 18px;border-bottom:1px solid var(--line-2);font-size:13.5px}
+dl.dl > div:last-child{border-bottom:none}
+dl.dl dt{color:var(--muted)}
+dl.dl dd{margin:0;white-space:pre-wrap;word-break:break-word}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12px;border:1px solid var(--violet-line);background:var(--violet-bg);color:var(--violet);border-radius:4px;padding:2px 8px}
+.chip.grey{border-color:var(--slate-line);background:var(--slate-bg);color:#4a5462}
+
+/* Lists (dashboard) */
+.list{list-style:none;margin:0;padding:0}
+.list li{border-bottom:1px solid var(--line-2)}
+.list li:last-child{border-bottom:none}
+.list a.row{display:flex;justify-content:space-between;gap:12px;padding:10px 18px;color:inherit}
+.list a.row:hover{background:#f8fafc;text-decoration:none}
+.reasons{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+
+/* Record lists (tasks/dates/docs/notes) */
+.rec-group-h{padding:8px 18px;font-size:11px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;border-bottom:1px solid var(--line-2);background:#fafbfc}
+.rec-group-h.red{color:var(--red);background:var(--red-bg)}
+.rec-group-h.amber{color:var(--amber);background:var(--amber-bg)}
+.rec-group-h.blue{color:var(--blue)}
+.rec-group-h.grey{color:var(--muted)}
+.panel-form{background:var(--navy-50);border:1px solid #d3dcea;border-radius:var(--radius);padding:16px 18px;margin-bottom:18px}
+.panel-form h3{font-size:14px;margin-bottom:12px}
+.panel-form .actions{display:flex;gap:8px;margin-top:14px}
+.note-card{padding:14px 18px;border-bottom:1px solid var(--line-2)}
+.note-card:last-child{border-bottom:none}
+.note-card .nh{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted);margin-bottom:5px}
+.note-card .nb{white-space:pre-wrap;font-size:13.5px}
+tr.overdue td{background:#fffafa}
+
+/* Template editor */
+.tpl-item{display:flex;gap:12px;align-items:flex-start;padding:10px 18px;border-bottom:1px solid var(--line-2)}
+.tpl-item:last-child{border-bottom:none}
+.tpl-item .ix{width:24px;text-align:right;color:var(--faint);font-size:12px;padding-top:2px;font-variant-numeric:tabular-nums}
+.tpl-item .body{flex:1;min-width:0}
+.tpl-item .acts{display:flex;gap:2px;flex-shrink:0}
+
+/* Toast */
+#toast{position:fixed;right:20px;bottom:20px;display:flex;flex-direction:column;gap:8px;z-index:50;pointer-events:none}
+.toast{background:var(--navy-900);color:#fff;padding:10px 16px;border-radius:5px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.18);max-width:360px}
+.toast.err{background:var(--red)}
+
+svg.i{width:14px;height:14px;vertical-align:-2px}
+
+/* ---------- Responsive ---------- */
+@media (max-width:1100px){
+  .g-4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .g-3-2,.g-2{grid-template-columns:minmax(0,1fr)}
+  .attn-list{grid-template-columns:minmax(0,1fr)}
+  .form-section{grid-template-columns:minmax(0,1fr);gap:12px}
+}
+@media (max-width:820px){
+  .app{flex-direction:column}
+  .sidebar{width:auto;height:auto;position:static}
+  .brand{padding:12px 16px}
+  .nav{flex-direction:row;flex-wrap:wrap;padding:6px 10px}
+  .nav a{border-left:none;border-bottom:3px solid transparent;padding:7px 10px}
+  .nav a.active{border-bottom-color:#8fb3e0}
+  .side-data{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 12px}
+  .side-data .h,.side-data p{display:none}
+  .side-data button{display:inline-block;width:auto;margin:0}
+  main{padding:18px 14px 30px}
+  .form-grid{grid-template-columns:minmax(0,1fr)}
+  .m-ctrls{align-items:flex-start}
+  .m-prog{width:100%}
+  .stage-h .sp{width:120px}
+  dl.dl > div{grid-template-columns:minmax(0,1fr);gap:2px}
+  .sp-list li a{grid-template-columns:26px minmax(0,1fr) 60px 48px}
+}
+@media (max-width:520px){ .g-4{grid-template-columns:minmax(0,1fr)} }
+@media print{ .sidebar,.proto-banner,#toast,.btn,.tabs{display:none!important} main{padding:0} }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="t">Wills Matters</div>
+      <div class="s">Estate planning workflow</div>
+    </div>
+    <nav class="nav" aria-label="Main">
+      <a href="#/dashboard" data-nav="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Dashboard</a>
+      <a href="#/matters" data-nav="matters"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 9v11"/></svg>Matters</a>
+      <a href="#/new" data-nav="new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>New Matter</a>
+      <a href="#/template" data-nav="template"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg>Checklist Template</a>
+    </nav>
+    <div class="side-data">
+      <div class="h">Prototype data</div>
+      <button type="button" data-action="export">Export Data</button>
+      <button type="button" data-action="import">Import Data</button>
+      <button type="button" class="reset" data-action="reset">Reset Sample Data</button>
+      <input type="file" id="import-file" accept=".json,application/json" hidden>
+      <p>Saved in this browser only (localStorage). Not a database and not encrypted. Export regularly if you want a copy.</p>
+    </div>
+  </aside>
+  <div class="main-col">
+    <div class="proto-banner"><strong>PROTOTYPE — Do not enter real client information.</strong> Data is stored locally in this browser and is not encrypted.</div>
+    <div class="storage-warn" id="storage-warn" hidden>Browser storage is unavailable (it may be blocked by browser settings). Changes will be lost when this page is closed. Use Export Data to keep a copy.</div>
+    <main id="main" tabindex="-1"></main>
+    <footer class="foot">Prototype only. Do not enter real client information. Data is stored locally in this browser and is not encrypted.<br>Workflow aid only — checklist prompts are not legal advice and do not replace the firm's precedents, procedures or supervision.</footer>
+  </div>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   1. CONSTANTS & UTILITIES
+   ===================================================================== */
+var STORE_KEY = 'willsMatterDashboard.prototype.v1';
+var DATA_VERSION = 1;
+var APP_ID = 'wills-matter-dashboard-prototype';
+
+var STATUSES = ['New Instruction', 'Taking Instructions', 'Drafting', 'Awaiting Client', 'Ready for Execution', 'Executed', 'Finalised', 'On Hold', 'Closed'];
+var URGENCIES = ['Low', 'Normal', 'High', 'Urgent'];
+var INACTIVE_STATUSES = ['Finalised', 'Closed'];
+var EXECUTED_STATUSES = ['Executed', 'Finalised', 'Closed'];
+var STATUS_TONE = {
+  'New Instruction': 'blue', 'Taking Instructions': 'blue', 'Drafting': 'violet', 'Awaiting Client': 'amber',
+  'Ready for Execution': 'amber', 'Executed': 'green', 'Finalised': 'green', 'On Hold': 'slate', 'Closed': 'slate'
+};
+var URGENCY_TONE = { Low: 'slate', Normal: 'slate', High: 'amber', Urgent: 'red' };
+var URGENCY_RANK = { Urgent: 0, High: 1, Normal: 2, Low: 3 };
+
+var TASK_STATUSES = ['Not Started', 'In Progress', 'Waiting on Client', 'Completed', 'Cancelled'];
+var TASK_PRIORITIES = ['Low', 'Normal', 'High', 'Urgent'];
+var TASK_CATEGORIES = ['Instructions', 'Client communication', 'Information from third party', 'Drafting', 'Review', 'Execution', 'Post-execution', 'Administration', 'Other'];
+var DATE_TYPES = ['Instruction date', 'Draft sent date', 'Client response date', 'Execution date', 'Follow-up date', 'Review date', 'Custom date'];
+var DATE_STATUSES = ['Scheduled', 'Done'];
+var DOC_TYPES = ['Client questionnaire', 'Draft Will', 'Final Will', 'Cover letter', 'Execution copy', 'Signed Will', 'Other'];
+var DOC_STATUSES = ['Requested', 'Received', 'In draft', 'Sent to client', 'Final', 'Signed', 'Stored', 'Superseded'];
+var DUE_SOON_DAYS = 7;
+var EXECUTION_SOON_DAYS = 14;
+
+var STAGES = [
+  { n: 1, name: 'Opening / Instructions', tab: 'instructions' },
+  { n: 2, name: 'Executors / Guardians', tab: 'executors' },
+  { n: 3, name: 'Estate / Assets', tab: 'estate' },
+  { n: 4, name: 'Beneficiaries', tab: 'beneficiaries' },
+  { n: 5, name: 'Drafting', tab: 'drafting' },
+  { n: 6, name: 'Review', tab: 'drafting' },
+  { n: 7, name: 'Execution / Finalisation', tab: 'execution' }
+];
+
+var TABS = [
+  { k: 'overview', label: 'Overview' },
+  { k: 'instructions', label: 'Instructions', stages: [1] },
+  { k: 'family', label: 'Family' },
+  { k: 'estate', label: 'Estate', stages: [3] },
+  { k: 'beneficiaries', label: 'Beneficiaries', stages: [4] },
+  { k: 'executors', label: 'Executors & Guardians', stages: [2] },
+  { k: 'drafting', label: 'Drafting', stages: [5, 6] },
+  { k: 'execution', label: 'Execution', stages: [7] },
+  { k: 'tasks', label: 'Tasks' },
+  { k: 'dates', label: 'Dates' },
+  { k: 'notes', label: 'Notes' },
+  { k: 'documents', label: 'Documents' }
+];
+
+var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function esc(v) {
+  if (v === null || v === undefined) return '';
+  return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function pad(n) { return (n < 10 ? '0' : '') + n; }
+function uid(prefix) { return prefix + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8); }
+function nowTs() { return new Date().toISOString(); }
+function isoOf(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+/** Today's date (YYYY-MM-DD) in the computer's local time zone. */
+function todayISO() { return isoOf(new Date()); }
+function isValidISO(s) {
+  if (typeof s !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  var p = s.split('-').map(Number);
+  var d = new Date(p[0], p[1] - 1, p[2]);
+  return d.getFullYear() === p[0] && d.getMonth() === p[1] - 1 && d.getDate() === p[2] && p[0] >= 1900 && p[0] <= 2100;
+}
+function addDays(iso, n) {
+  var p = iso.split('-').map(Number);
+  return isoOf(new Date(p[0], p[1] - 1, p[2] + n));
+}
+function daysBetween(fromIso, toIso) {
+  var a = fromIso.split('-').map(Number), b = toIso.split('-').map(Number);
+  return Math.round((Date.UTC(b[0], b[1] - 1, b[2]) - Date.UTC(a[0], a[1] - 1, a[2])) / 86400000);
+}
+function fmtDate(iso) {
+  if (!iso || !isValidISO(iso)) return '—';
+  var p = iso.split('-').map(Number);
+  return p[2] + ' ' + MONTHS[p[1] - 1] + ' ' + p[0];
+}
+function fmtDateTime(ts) {
+  if (!ts) return '—';
+  var d = new Date(ts);
+  if (isNaN(d.getTime())) return '—';
+  var h = d.getHours(), ap = h >= 12 ? 'pm' : 'am';
+  h = h % 12 || 12;
+  return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear() + ', ' + h + ':' + pad(d.getMinutes()) + ' ' + ap;
+}
+function relDue(iso, today) {
+  var diff = daysBetween(today || todayISO(), iso);
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Tomorrow';
+  if (diff === -1) return '1 day overdue';
+  if (diff < 0) return (-diff) + ' days overdue';
+  return 'In ' + diff + ' days';
+}
+function dueHtml(iso, done) {
+  if (!iso) return '<span class="small">—</span>';
+  if (done) return '<span class="nowrap">' + fmtDate(iso) + '</span>';
+  var diff = daysBetween(todayISO(), iso);
+  var tone = diff < 0 ? 'red' : diff <= 3 ? 'amber' : 'grey';
+  return '<span class="nowrap">' + fmtDate(iso) + '<span class="due ' + tone + '">' + relDue(iso) + '</span></span>';
+}
+function badge(text, tone) { return '<span class="badge b-' + (tone || 'slate') + '">' + esc(text) + '</span>'; }
+function statusBadge(s) { return badge(s, STATUS_TONE[s] || 'slate'); }
+function urgencyBadge(u) { return badge(u, URGENCY_TONE[u] || 'slate'); }
+function sampleTag(m) { return m && m.sample ? ' <span class="sample">SAMPLE DATA</span>' : ''; }
+function pbar(pct) { return '<div class="pbar' + (pct === 100 ? ' done' : '') + '"><span style="width:' + Math.max(0, Math.min(100, pct)) + '%"></span></div>'; }
+function options(list, selected, blank) {
+  var h = blank !== undefined ? '<option value="">' + esc(blank) + '</option>' : '';
+  for (var i = 0; i < list.length; i++) {
+    var v = list[i], val = typeof v === 'object' ? v.v : v, lab = typeof v === 'object' ? v.l : v;
+    h += '<option value="' + esc(val) + '"' + (String(selected) === String(val) ? ' selected' : '') + '>' + esc(lab) + '</option>';
+  }
+  return h;
+}
+function norm(s) { return String(s || '').trim().toLowerCase().replace(/\s+/g, ' '); }
+function clone(o) { return JSON.parse(JSON.stringify(o)); }
+var ICON = {
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+  up: '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>',
+  down: '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>',
+  arrow: '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>'
+};
+
+/* =====================================================================
+   2. CLIENT CIRCUMSTANCES SCHEMA
+   One definition drives: the New Matter form, the workspace editors,
+   conditional fields AND the checklist conditions.
+   type: yn (Yes/No) | text | textarea | select | date | number
+   `children` are shown only when the parent answer is "Yes".
+   ===================================================================== */
+var RELATIONSHIP_STATUSES = ['Single', 'Married', 'De facto', 'Separated', 'Divorced', 'Widowed', 'Other'];
+
+var PROFILE_GROUPS = {
+  family: {
+    title: 'Family',
+    intro: 'Relationship and family circumstances.',
+    fields: [
+      { k: 'relationshipStatus', label: 'Marital / relationship status', type: 'select', options: RELATIONSHIP_STATUSES },
+      { k: 'hasSpouse', label: 'Has spouse/partner?', type: 'yn', children: [
+        { k: 'spouseName', label: 'Spouse/partner name', type: 'text' },
+        { k: 'spouseDob', label: 'Spouse/partner date of birth', type: 'date' },
+        { k: 'spouseHasWill', label: 'Does the spouse/partner have a current Will?', type: 'yn' },
+        { k: 'spouseNotes', label: 'Spouse/partner notes', type: 'textarea', wide: true }
+      ] },
+      { k: 'hasChildren', label: 'Has children?', type: 'yn', children: [
+        { k: 'numChildren', label: 'Number of children', type: 'number' },
+        { k: 'childrenNames', label: "Children's names", type: 'textarea', wide: true, placeholder: 'One per line, with ages if known' },
+        { k: 'deceasedChildren', label: 'Any deceased children?', type: 'yn' },
+        { k: 'stepchildren', label: 'Any stepchildren?', type: 'yn' },
+        { k: 'childrenUnder18', label: 'Any children under 18?', type: 'yn' },
+        { k: 'childSpecialNeeds', label: 'Any child requiring special consideration?', type: 'yn', children: [
+          { k: 'childSpecialNotes', label: 'Details', type: 'textarea', wide: true }
+        ] }
+      ] },
+      { k: 'prevRelationship', label: 'Has previous marriage/relationship?', type: 'yn', children: [
+        { k: 'prevRelationshipNotes', label: 'Details (e.g. dates, property settlement, ongoing obligations)', type: 'textarea', wide: true }
+      ] },
+      { k: 'blendedFamily', label: 'Blended family?', type: 'yn', children: [
+        { k: 'blendedNotes', label: 'Family structure / client intentions', type: 'textarea', wide: true }
+      ] }
+    ]
+  },
+  assets: {
+    title: 'Assets',
+    intro: 'What the client holds. Details can be completed later in the Estate tab.',
+    fields: [
+      { k: 'ownsRealProperty', label: 'Owns real property?', type: 'yn', children: [
+        { k: 'realPropertyNotes', label: 'Properties and how held (sole / joint tenants / tenants in common)', type: 'textarea', wide: true }
+      ] },
+      { k: 'hasBusiness', label: 'Has business interests?', type: 'yn', children: [
+        { k: 'businessNotes', label: 'Business structure, partners, succession arrangements', type: 'textarea', wide: true }
+      ] },
+      { k: 'hasCompany', label: 'Has company interests?', type: 'yn', children: [
+        { k: 'companyNotes', label: 'Companies, shareholdings, directorships', type: 'textarea', wide: true }
+      ] },
+      { k: 'hasFamilyTrust', label: 'Has family trust?', type: 'yn', children: [
+        { k: 'trustName', label: 'Trust name', type: 'text' },
+        { k: 'trustRole', label: "Client's role(s)", type: 'select', options: ['Appointor', 'Trustee', 'Director of corporate trustee', 'Beneficiary', 'Settlor', 'Multiple roles', 'Unknown'] },
+        { k: 'trustDeedHeld', label: 'Copy of trust deed obtained?', type: 'yn' },
+        { k: 'trustNotes', label: 'Trust notes (e.g. successor appointor provisions)', type: 'textarea', wide: true }
+      ] },
+      { k: 'hasSMSF', label: 'Has SMSF?', type: 'yn', children: [
+        { k: 'smsfName', label: 'Fund name', type: 'text' },
+        { k: 'smsfTrustee', label: 'Trustee structure', type: 'select', options: ['Individual trustees', 'Corporate trustee', 'Unknown'] },
+        { k: 'smsfMembers', label: 'Members', type: 'text' },
+        { k: 'smsfDeedHeld', label: 'Copy of SMSF deed obtained?', type: 'yn' }
+      ] },
+      { k: 'hasSuper', label: 'Has superannuation?', type: 'yn', children: [
+        { k: 'superNotes', label: 'Funds and approximate balances', type: 'textarea', wide: true }
+      ] },
+      { k: 'hasBDBN', label: 'Has BDBN?', type: 'yn', children: [
+        { k: 'bdbnFund', label: 'Fund', type: 'text' },
+        { k: 'bdbnDate', label: 'Date of nomination', type: 'date' },
+        { k: 'bdbnType', label: 'Type', type: 'select', options: ['Lapsing', 'Non-lapsing', 'Unknown'] },
+        { k: 'bdbnExpiry', label: 'Expiry date (if lapsing)', type: 'date' },
+        { k: 'bdbnBeneficiaries', label: 'Nominated beneficiaries', type: 'textarea', wide: true }
+      ] },
+      { k: 'hasInvestments', label: 'Has significant investments?', type: 'yn', children: [
+        { k: 'investmentNotes', label: 'Investments / shares', type: 'textarea', wide: true }
+      ] },
+      { k: 'hasOverseasAssets', label: 'Has overseas assets?', type: 'yn', children: [
+        { k: 'overseasNotes', label: 'Country, asset type, any foreign Will', type: 'textarea', wide: true }
+      ] }
+    ]
+  },
+  other: {
+    title: 'Other matters',
+    intro: 'Gifts, wishes and beneficiary considerations.',
+    fields: [
+      { k: 'specificGifts', label: 'Specific gifts contemplated?', type: 'yn', children: [
+        { k: 'giftNotes', label: 'Proposed gifts (item, recipient, substitute)', type: 'textarea', wide: true }
+      ] },
+      { k: 'hasPet', label: 'Pet requiring arrangements?', type: 'yn', children: [
+        { k: 'petNotes', label: 'Pet(s), proposed carer, any funds for care', type: 'textarea', wide: true }
+      ] },
+      { k: 'funeralWishes', label: 'Special burial/cremation wishes?', type: 'yn', children: [
+        { k: 'funeralNotes', label: 'Wishes', type: 'textarea', wide: true }
+      ] },
+      { k: 'vulnerableBeneficiaries', label: 'Any potentially vulnerable beneficiaries?', type: 'yn', children: [
+        { k: 'vulnerableNotes', label: 'Details', type: 'textarea', wide: true }
+      ] }
+    ]
+  },
+  executors: {
+    title: 'Executors & Guardians',
+    fields: [
+      { k: 'executorName', label: 'Proposed executor(s)', type: 'text' },
+      { k: 'substituteExecutor', label: 'Substitute executor(s)', type: 'text' },
+      { k: 'executorNotes', label: 'Client reasoning / preferences', type: 'textarea', wide: true }
+    ]
+  },
+  guardians: {
+    title: 'Guardians',
+    fields: [
+      { k: 'guardianName', label: 'Proposed guardian(s)', type: 'text' },
+      { k: 'substituteGuardian', label: 'Substitute guardian(s)', type: 'text' },
+      { k: 'guardianNotes', label: 'Client reasoning / alternative arrangements', type: 'textarea', wide: true }
+    ]
+  }
+};
+
+/* Flattened index of every profile field, with its parent chain. */
+var FIELD_INDEX = {};
+(function indexFields() {
+  function walk(list, parent, group) {
+    list.forEach(function (f) {
+      FIELD_INDEX[f.k] = { def: f, parent: parent, group: group };
+      if (f.children) walk(f.children, f.k, group);
+    });
+  }
+  Object.keys(PROFILE_GROUPS).forEach(function (g) { walk(PROFILE_GROUPS[g].fields, null, g); });
+})();
+/* Yes/No questions that can be used as checklist conditions. */
+var CONDITION_FIELDS = Object.keys(FIELD_INDEX).filter(function (k) { return FIELD_INDEX[k].def.type === 'yn'; });
+
+function fieldLabel(k) { return FIELD_INDEX[k] ? FIELD_INDEX[k].def.label : k; }
+/** A Yes/No answer only counts if every parent question is also "Yes". */
+function answerOf(profile, k) {
+  var node = FIELD_INDEX[k];
+  if (!node) return '';
+  if (node.parent && answerOf(profile, node.parent) !== 'yes') return '';
+  return (profile && profile[k]) || '';
+}
+function conditionMet(profile, cond) {
+  if (!cond || !cond.field) return false;
+  return answerOf(profile, cond.field) === (cond.equals || 'yes');
+}
+function conditionText(cond) {
+  if (!cond || !cond.field) return '';
+  return fieldLabel(cond.field).replace(/\?$/, '') + ' = ' + ((cond.equals || 'yes') === 'yes' ? 'Yes' : 'No');
+}
+
+/* =====================================================================
+   3. DEFAULT CHECKLIST TEMPLATE
+   [stage, text, guidance, conditionField (null = core), key]
+   Wording is deliberately "Consider / Confirm / Record / Check per firm
+   procedure" — workflow prompts, not legal advice.
+   ===================================================================== */
+var DEFAULT_TEMPLATE_ROWS = [
+  // Stage 1 — Opening / Instructions (core)
+  [1, 'Confirm identity details', 'Verify and record ID per firm procedure.'],
+  [1, 'Confirm instruction date'],
+  [1, 'Confirm responsible lawyer'],
+  [1, 'Confirm client understands purpose of meeting'],
+  [1, 'Record relationship status'],
+  [1, 'Identify previous relationships'],
+  [1, 'Identify relevant family circumstances'],
+  [1, 'Check for existing Will(s) and where any original is held'],
+  [1, 'Record any observations relevant to capacity', 'Escalate any concerns to the supervising lawyer per firm procedure.'],
+  // Stage 1 — conditional
+  [1, 'Identify spouse/partner and record details', null, 'hasSpouse'],
+  [1, "Confirm whether spouse/partner is also making a Will", null, 'hasSpouse'],
+  [1, 'Identify children (names, ages, relationship)', null, 'hasChildren'],
+  [1, 'Record details of any deceased child and whether they left children', null, 'deceasedChildren'],
+  [1, 'Record stepchildren and client intentions for them', null, 'stepchildren'],
+  [1, 'Record previous marriage/relationship details', 'Including any property settlement or ongoing obligations.', 'prevRelationship'],
+  [1, 'Identify blended family circumstances', 'Record each family group and the client\'s intentions for each.', 'blendedFamily'],
+  [1, 'Consider whether blended family arrangements require supervising lawyer input', 'Per firm procedure.', 'blendedFamily'],
+
+  // Stage 2 — Executors / Guardians (core)
+  [2, 'Identify proposed executor'],
+  [2, 'Identify substitute executor'],
+  [2, 'Consider executor capacity/availability'],
+  [2, 'Record client reasoning/preferences'],
+  [2, 'Record alternative arrangements'],
+  // Stage 2 — conditional
+  [2, 'Identify proposed guardian', 'Relevant where there are children under 18.', 'childrenUnder18'],
+  [2, 'Identify substitute guardian', null, 'childrenUnder18'],
+  [2, 'Record client reasoning for guardian choice', null, 'childrenUnder18'],
+  [2, 'Consider whether executors are suited to managing business interests', null, 'hasBusiness'],
+  [2, 'Record who will control the family trust after death', 'Check appointor/trustee succession under the trust deed.', 'hasFamilyTrust'],
+
+  // Stage 3 — Estate / Assets (core)
+  [3, 'Bank accounts', 'Record institutions and whether held solely or jointly.'],
+  [3, 'Vehicles'],
+  [3, 'Personal property', 'Items of financial or sentimental value.'],
+  [3, 'Digital assets', 'Online accounts, digital records, cryptocurrency.'],
+  [3, 'Record liabilities and debts'],
+  // Stage 3 — conditional
+  [3, 'Real property — record title details and how held', 'Sole name / joint tenants / tenants in common.', 'ownsRealProperty'],
+  [3, 'Consider jointly held property that may pass outside the estate', null, 'ownsRealProperty'],
+  [3, 'Investments and shares — record holdings', null, 'hasInvestments'],
+  [3, 'Superannuation — record funds', null, 'hasSuper'],
+  [3, 'Consider superannuation that may pass outside the estate', null, 'hasSuper'],
+  [3, 'SMSF — record fund, trustee structure and members', null, 'hasSMSF'],
+  [3, 'Obtain copy of SMSF deed', null, 'hasSMSF'],
+  [3, 'Consider control of the SMSF on death per the deed', 'Discuss with supervising lawyer per firm procedure.', 'hasSMSF'],
+  [3, 'Review BDBN', 'Obtain a copy; record date, type, expiry and nominated beneficiaries.', 'hasBDBN'],
+  [3, 'Check BDBN validity/expiry per fund requirements', null, 'hasBDBN'],
+  [3, 'Companies — record shareholdings and directorships', null, 'hasCompany'],
+  [3, 'Check company constitution and any shareholder agreement', null, 'hasCompany'],
+  [3, 'Family trust — obtain trust deed', null, 'hasFamilyTrust'],
+  [3, "Record client's roles in the family trust", 'Appointor, trustee, director of trustee, beneficiary.', 'hasFamilyTrust'],
+  [3, 'Business interests — record structure and partners', null, 'hasBusiness'],
+  [3, 'Check any buy-sell or succession arrangements', null, 'hasBusiness'],
+  [3, 'Overseas assets — record location and type', null, 'hasOverseasAssets'],
+  [3, 'Consider whether advice in the other jurisdiction may be required', 'Per firm procedure; record any existing foreign Will.', 'hasOverseasAssets'],
+
+  // Stage 4 — Beneficiaries (core)
+  [4, 'Identify intended beneficiaries'],
+  [4, 'Identify residuary beneficiaries'],
+  [4, 'Consider substitute beneficiaries'],
+  [4, 'Record relevant client instructions'],
+  [4, 'Consider potential family provision claims', 'Discuss with supervising lawyer per firm procedure.'],
+  // Stage 4 — conditional
+  [4, 'Identify children as beneficiaries and intended shares', null, 'hasChildren'],
+  [4, 'Identify grandchildren and consider substitution for a child\'s children', null, 'hasChildren'],
+  [4, 'Consider provisions for beneficiaries under 18', 'E.g. age of entitlement and management of their share.', 'childrenUnder18'],
+  [4, 'Record special considerations for child requiring special consideration', null, 'childSpecialNeeds'],
+  [4, 'Confirm how the estate is to be shared between family groups', null, 'blendedFamily'],
+  [4, 'Identify specific gifts (item, recipient, substitute)', null, 'specificGifts'],
+  [4, 'Confirm client owns each item proposed as a specific gift', null, 'specificGifts'],
+  [4, 'Identify potentially vulnerable beneficiaries', null, 'vulnerableBeneficiaries'],
+  [4, 'Consider protective arrangements for vulnerable beneficiaries', 'E.g. trust arrangements — discuss with supervising lawyer.', 'vulnerableBeneficiaries'],
+  [4, 'Record pet-related wishes and proposed carer', null, 'hasPet'],
+  [4, 'Consider any gift to support pet care', null, 'hasPet'],
+  [4, 'Record funeral / burial / cremation wishes', null, 'funeralWishes'],
+
+  // Stage 5 — Drafting (core)
+  [5, 'Select firm precedent', 'Use the firm\'s current approved precedent.'],
+  [5, 'Confirm executor provisions'],
+  [5, 'Confirm residue'],
+  [5, 'Confirm substitution provisions'],
+  [5, 'Review survivorship provisions where relevant'],
+  [5, 'Review administrative provisions'],
+  [5, 'Prepare draft', null, null, 'prepare-draft'],
+  // Stage 5 — conditional
+  [5, 'Confirm guardian provisions', null, 'childrenUnder18'],
+  [5, 'Confirm specific gifts', null, 'specificGifts'],
+  [5, 'Review trust provisions where relevant', null, 'vulnerableBeneficiaries'],
+  [5, 'Confirm provisions for beneficiaries under 18', null, 'childrenUnder18'],
+  [5, 'Confirm pet-related provisions', null, 'hasPet'],
+  [5, 'Check draft is consistent with overseas asset arrangements', null, 'hasOverseasAssets'],
+
+  // Stage 6 — Review (core)
+  [6, 'Internal review', 'Supervising lawyer review per firm procedure.', null, 'internal-review'],
+  [6, 'Send draft to client', null, null, 'send-draft'],
+  [6, 'Record client comments'],
+  [6, 'Amend draft'],
+  [6, 'Confirm instructions'],
+  [6, 'Finalise execution version'],
+  // Stage 6 — conditional
+  [6, 'Check BDBN is consistent with the Will instructions', null, 'hasBDBN'],
+
+  // Stage 7 — Execution / Finalisation (core)
+  [7, 'Confirm execution appointment'],
+  [7, 'Confirm witnesses', 'Check witness requirements per firm procedure.'],
+  [7, 'Confirm final document'],
+  [7, 'Execute Will', null, null, 'execute'],
+  [7, 'Record execution date'],
+  [7, 'Store executed Will'],
+  [7, 'Confirm original storage arrangements'],
+  [7, 'Send copy to client'],
+  [7, 'Finalise matter'],
+  // Stage 7 — conditional
+  [7, 'Consider BDBN follow-up (new or renewed nomination)', null, 'hasBDBN'],
+  [7, 'Consider SMSF deed/nomination follow-up', null, 'hasSMSF'],
+  [7, 'Consider trust deed follow-up (e.g. successor appointor)', null, 'hasFamilyTrust'],
+  [7, 'Consider title follow-up if instructed (e.g. how property is held)', null, 'ownsRealProperty']
+];
+
+function defaultTemplate() {
+  return DEFAULT_TEMPLATE_ROWS.map(function (r, i) {
+    return {
+      id: 'tpl-' + pad(Math.floor(i / 10)) + (i % 10),
+      stage: r[0],
+      text: r[1],
+      guidance: r[2] || '',
+      type: r[3] ? 'conditional' : 'core',
+      condition: r[3] ? { field: r[3], equals: 'yes' } : null,
+      key: r[4] || null
+    };
+  });
+}
+
+/* =====================================================================
+   4. MATTER MODEL
+   A matter's checklist is a SNAPSHOT of the whole template (core and
+   conditional items) taken when the matter is created. Template edits
+   therefore never change existing matters. Conditional items are shown
+   or hidden live, based on the matter's current answers.
+   ===================================================================== */
+function checklistFromTemplate(template) {
+  return template.map(function (t) {
+    return {
+      id: uid('ci'), templateId: t.id, stage: t.stage, text: t.text, guidance: t.guidance || '',
+      type: t.type, condition: t.condition ? clone(t.condition) : null, key: t.key || null,
+      state: 'open', stateAt: null, note: '', noteAt: null
+    };
+  });
+}
+
+function newMatter(values, profile, template) {
+  var ts = nowTs();
+  return {
+    id: uid('m'), sample: false,
+    client: values.client, matterNo: values.matterNo, lawyer: values.lawyer || '',
+    status: values.status || 'New Instruction', urgency: values.urgency || 'Normal',
+    instructionDate: values.instructionDate || '', targetExecDate: values.targetExecDate || '',
+    nextAction: values.nextAction || '',
+    profile: profile || {},
+    checklist: checklistFromTemplate(template),
+    tasks: [], dates: [], notes: [], documents: [],
+    createdAt: ts, updatedAt: ts
+  };
+}
+
+function touch(m) { m.updatedAt = nowTs(); }
+function isActive(m) { return INACTIVE_STATUSES.indexOf(m.status) === -1; }
+function isExecuted(m) { return EXECUTED_STATUSES.indexOf(m.status) !== -1; }
+function itemApplies(m, it) { return it.type !== 'conditional' || conditionMet(m.profile, it.condition); }
+function applicableItems(m) { return m.checklist.filter(function (it) { return itemApplies(m, it); }); }
+
+/** Stage items in display order: core first, then triggered items. */
+function stageItems(m, n) {
+  var items = applicableItems(m).filter(function (it) { return it.stage === n; });
+  return items.filter(function (i) { return i.type !== 'conditional'; }).concat(items.filter(function (i) { return i.type === 'conditional'; }));
+}
+
+/** Progress = completed / applicable items (N/A items are excluded). */
+function progressOf(m) {
+  var stages = STAGES.map(function (s) {
+    var items = stageItems(m, s.n);
+    var counted = items.filter(function (i) { return i.state !== 'na'; });
+    var done = counted.filter(function (i) { return i.state === 'done'; }).length;
+    return { n: s.n, name: s.name, tab: s.tab, done: done, total: counted.length, na: items.length - counted.length,
+      pct: counted.length ? Math.round(done / counted.length * 100) : 0 };
+  });
+  var done = 0, total = 0;
+  stages.forEach(function (s) { done += s.done; total += s.total; });
+  return { done: done, total: total, outstanding: total - done, pct: total ? Math.round(done / total * 100) : 0, stages: stages };
+}
+
+function nextOpenItem(m) {
+  for (var s = 0; s < STAGES.length; s++) {
+    var items = stageItems(m, STAGES[s].n);
+    for (var i = 0; i < items.length; i++) if (items[i].state === 'open') return items[i];
+  }
+  return null;
+}
+function itemByKey(m, key) {
+  for (var i = 0; i < m.checklist.length; i++) if (m.checklist[i].key === key && itemApplies(m, m.checklist[i])) return m.checklist[i];
+  return null;
+}
+function tabForStage(n) { for (var i = 0; i < STAGES.length; i++) if (STAGES[i].n === n) return STAGES[i].tab; return 'overview'; }
+function isOpenTask(t) { return t.status !== 'Completed' && t.status !== 'Cancelled'; }
+
+/** Every dated thing on a matter that still matters (for dashboards). */
+function datedItems(m) {
+  var out = [];
+  if (!isActive(m)) return out;
+  if (m.targetExecDate && !isExecuted(m)) out.push({ date: m.targetExecDate, label: 'Target execution', kind: 'execution', tab: 'dates' });
+  m.dates.forEach(function (d) {
+    if (d.status !== 'Done' && d.date) out.push({ date: d.date, label: d.type === 'Custom date' ? (d.label || 'Custom date') : d.type, kind: 'date', tab: 'dates', id: d.id });
+  });
+  m.tasks.forEach(function (t) {
+    if (isOpenTask(t) && t.due) out.push({ date: t.due, label: 'Task: ' + t.name, kind: 'task', tab: 'tasks', id: t.id });
+  });
+  out.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+  return out;
+}
+function importantDate(m) { var d = datedItems(m); return d.length ? d[0] : null; }
+
+/**
+ * "What needs my attention?" rules.
+ * level: overdue | soon | waiting | info
+ */
+function attentionFor(m) {
+  var out = [], today = todayISO();
+  if (!isActive(m)) return out;
+
+  m.tasks.forEach(function (t) {
+    if (!isOpenTask(t)) return;
+    if (t.due) {
+      var d = daysBetween(today, t.due);
+      if (d < 0) out.push({ level: 'overdue', cat: 'Task overdue', text: 'Task overdue: ' + t.name, date: t.due, tab: 'tasks', anchor: 'task-' + t.id });
+      else if (d <= DUE_SOON_DAYS) out.push({ level: 'soon', cat: 'Task due soon', text: 'Task due: ' + t.name, date: t.due, tab: 'tasks', anchor: 'task-' + t.id });
+    }
+    if (t.status === 'Waiting on Client') out.push({ level: 'waiting', cat: 'Waiting on client', text: 'Waiting on client: ' + t.name, tab: 'tasks', anchor: 'task-' + t.id });
+  });
+
+  if (m.status === 'Awaiting Client') out.push({ level: 'waiting', cat: 'Client response outstanding', text: 'Client response outstanding', tab: 'dates' });
+
+  m.dates.forEach(function (d) {
+    if (d.status === 'Done' || !d.date) return;
+    var diff = daysBetween(today, d.date), label = d.type === 'Custom date' ? (d.label || 'Custom date') : d.type;
+    if (diff < 0) out.push({ level: 'overdue', cat: 'Date passed', text: label + ' has passed', date: d.date, tab: 'dates', anchor: 'date-' + d.id });
+    else if (diff <= DUE_SOON_DAYS) out.push({ level: 'soon', cat: 'Important date approaching', text: label + ' approaching', date: d.date, tab: 'dates', anchor: 'date-' + d.id });
+  });
+
+  if (m.targetExecDate && !isExecuted(m)) {
+    var e = daysBetween(today, m.targetExecDate);
+    if (e < 0) out.push({ level: 'overdue', cat: 'Execution date passed', text: 'Target execution date has passed', date: m.targetExecDate, tab: 'execution' });
+    else if (e <= EXECUTION_SOON_DAYS) out.push({ level: 'soon', cat: 'Execution date approaching', text: 'Execution date approaching', date: m.targetExecDate, tab: 'execution' });
+  }
+
+  var draft = itemByKey(m, 'prepare-draft'), review = itemByKey(m, 'internal-review');
+  if (draft && review && draft.state === 'done' && review.state === 'open') {
+    out.push({ level: 'soon', cat: 'Draft requires review', text: 'Draft requires review', tab: 'drafting', anchor: 'item-' + review.id });
+  }
+
+  var p = progressOf(m);
+  if (p.outstanding > 0) {
+    var next = nextOpenItem(m);
+    out.push({ level: 'info', cat: 'Checklist items outstanding', text: p.outstanding + ' checklist item' + (p.outstanding === 1 ? '' : 's') + ' outstanding',
+      detail: next ? 'Next: ' + next.text : '', tab: next ? tabForStage(next.stage) : 'overview', anchor: next ? 'item-' + next.id : null });
+  }
+
+  var rank = { overdue: 0, soon: 1, waiting: 2, info: 3 };
+  out.sort(function (a, b) { return rank[a.level] - rank[b.level] || String(a.date || '9').localeCompare(String(b.date || '9')); });
+  return out;
+}
+function flagsOf(m) {
+  var a = attentionFor(m);
+  var has = function (lv) { return a.some(function (x) { return x.level === lv; }); };
+  return { items: a, overdue: has('overdue'), soon: has('soon'), waiting: has('waiting'), attention: has('overdue') || has('soon') || has('waiting') };
+}
+
+/* =====================================================================
+   5. STORAGE (localStorage — PROTOTYPE ONLY, NOT ENCRYPTED)
+   ===================================================================== */
+var db = null;
+var storageOK = true;
+
+function freshData() {
+  var template = defaultTemplate();
+  return { app: APP_ID, version: DATA_VERSION, createdAt: nowTs(), settings: { author: 'Local user' }, template: template, matters: buildSampleMatters(template) };
+}
+
+/** Light structural check for loaded/imported data. Returns an error string or ''. */
+function validateData(d) {
+  if (!d || typeof d !== 'object') return 'The file does not contain prototype data.';
+  if (d.app !== APP_ID) return 'This file was not exported from the Wills Matter Dashboard prototype.';
+  if (typeof d.version !== 'number' || d.version > DATA_VERSION) return 'This file was created by a newer version of the prototype.';
+  if (!Array.isArray(d.template) || !Array.isArray(d.matters)) return 'The file is missing the template or matters.';
+  for (var i = 0; i < d.matters.length; i++) {
+    var m = d.matters[i];
+    if (!m || !m.id || typeof m.client !== 'string' || typeof m.matterNo !== 'string' || !Array.isArray(m.checklist)) return 'Matter ' + (i + 1) + ' in the file is incomplete.';
+    ['tasks', 'dates', 'notes', 'documents'].forEach(function (k) { if (!Array.isArray(m[k])) m[k] = []; });
+    if (!m.profile || typeof m.profile !== 'object') m.profile = {};
+  }
+  for (var j = 0; j < d.template.length; j++) {
+    var t = d.template[j];
+    if (!t || !t.id || typeof t.text !== 'string' || !(t.stage >= 1 && t.stage <= 7)) return 'Template item ' + (j + 1) + ' in the file is incomplete.';
+  }
+  if (!d.settings) d.settings = { author: 'Local user' };
+  return '';
+}
+
+function loadData() {
+  var raw = null;
+  try { raw = window.localStorage.getItem(STORE_KEY); } catch (e) { storageOK = false; }
+  if (raw) {
+    try {
+      var parsed = JSON.parse(raw);
+      if (!validateData(parsed)) { db = parsed; return; }
+    } catch (e) { /* fall through to fresh data */ }
+    toast('Saved data could not be read, so sample data has been loaded.', true);
+  }
+  db = freshData();
+  saveData();
+}
+
+function saveData() {
+  if (!storageOK) { showStorageWarning(); return; }
+  try { window.localStorage.setItem(STORE_KEY, JSON.stringify(db)); }
+  catch (e) { storageOK = false; showStorageWarning(); }
+}
+function showStorageWarning() { var el = document.getElementById('storage-warn'); if (el) el.hidden = false; }
+function findMatter(id) { for (var i = 0; i < db.matters.length; i++) if (db.matters[i].id === id) return db.matters[i]; return null; }
+
+/* =====================================================================
+   6. FICTIONAL SAMPLE MATTERS
+   Obviously fictional names; every sample matter is flagged SAMPLE DATA.
+   ===================================================================== */
+function buildSampleMatters(template) {
+  var today = todayISO();
+  var D = function (n) { return addDays(today, n); };
+  var hoursAgo = function (h) { return new Date(Date.now() - h * 3600000).toISOString(); };
+
+  var specs = [
+    { client: 'Alexandra Sampleton', no: 'WIL-2026-001', lawyer: 'Sam Solicitor', status: 'Taking Instructions', urgency: 'Normal',
+      inst: -10, exec: 30, next: 'Confirm guardian preferences with client', updated: 3,
+      profile: { relationshipStatus: 'Married', hasSpouse: 'yes', spouseName: 'Jordan Sampleton', spouseHasWill: 'no', hasChildren: 'yes', numChildren: '2',
+        childrenNames: 'Riley Sampleton (9)\nQuinn Sampleton (6)', deceasedChildren: 'no', stepchildren: 'no', childrenUnder18: 'yes', childSpecialNeeds: 'no',
+        prevRelationship: 'no', blendedFamily: 'no', ownsRealProperty: 'yes', realPropertyNotes: 'Family home — joint tenants with spouse (to be confirmed by title search).',
+        hasBusiness: 'no', hasCompany: 'no', hasFamilyTrust: 'no', hasSMSF: 'no', hasSuper: 'yes', superNotes: 'Industry fund (fictional).', hasBDBN: 'no',
+        hasInvestments: 'no', hasOverseasAssets: 'no', specificGifts: 'no', hasPet: 'no', funeralWishes: 'no', vulnerableBeneficiaries: 'no' },
+      complete: 0, extra: 8,
+      tasks: [{ name: 'Obtain title search for family home', category: 'Information from third party', priority: 'Normal', due: -2, status: 'In Progress' }],
+      notes: ['Client and spouse attending together for mirror Wills. Separate instructions to be confirmed per firm procedure.'] },
+
+    { client: 'Bernard Testwell', no: 'WIL-2026-002', lawyer: 'Pat Partner', status: 'Drafting', urgency: 'High',
+      inst: -30, exec: 21, next: 'Prepare draft once trust deed received', updated: 20,
+      profile: { relationshipStatus: 'Widowed', hasSpouse: 'no', hasChildren: 'yes', numChildren: '3', childrenNames: 'Three adult children (fictional)',
+        deceasedChildren: 'no', stepchildren: 'no', childrenUnder18: 'no', childSpecialNeeds: 'no', prevRelationship: 'no', blendedFamily: 'no',
+        ownsRealProperty: 'yes', hasBusiness: 'yes', businessNotes: 'Sole trader — joinery business (fictional).', hasCompany: 'no',
+        hasFamilyTrust: 'yes', trustName: 'Testwell Family Trust (fictional)', trustRole: 'Appointor', trustDeedHeld: 'no', hasSMSF: 'no', hasSuper: 'yes', hasBDBN: 'no',
+        hasInvestments: 'yes', hasOverseasAssets: 'no', specificGifts: 'no', hasPet: 'no', funeralWishes: 'no', vulnerableBeneficiaries: 'no' },
+      complete: 4, extra: 3,
+      tasks: [{ name: 'Obtain trust deed from accountant', category: 'Information from third party', priority: 'High', due: 3, status: 'Waiting on Client', notes: 'Client to authorise accountant to release deed.' }],
+      dates: [{ type: 'Follow-up date', date: 3, status: 'Scheduled', notes: 'Chase trust deed.' }],
+      docs: [{ name: 'Client questionnaire', type: 'Client questionnaire', date: -28, status: 'Received' }] },
+
+    { client: 'Clara Placeholder', no: 'WIL-2026-003', lawyer: 'Sam Solicitor', status: 'Awaiting Client', urgency: 'High',
+      inst: -40, exec: 10, next: 'Follow up client comments on draft', updated: 30,
+      profile: { relationshipStatus: 'Married', hasSpouse: 'yes', spouseName: 'Morgan Placeholder', spouseHasWill: 'yes', hasChildren: 'no', prevRelationship: 'no', blendedFamily: 'no',
+        ownsRealProperty: 'yes', hasBusiness: 'no', hasCompany: 'no', hasFamilyTrust: 'no', hasSMSF: 'yes', smsfName: 'Placeholder Super Fund (fictional)', smsfTrustee: 'Corporate trustee',
+        smsfMembers: 'Clara and Morgan Placeholder', smsfDeedHeld: 'yes', hasSuper: 'yes', hasBDBN: 'yes', bdbnFund: 'Placeholder Super Fund (fictional)', bdbnDate: -1030, bdbnType: 'Lapsing',
+        bdbnExpiry: 65, bdbnBeneficiaries: 'Spouse', hasInvestments: 'yes', hasOverseasAssets: 'no', specificGifts: 'no', hasPet: 'no', funeralWishes: 'no', vulnerableBeneficiaries: 'no' },
+      complete: 5, extra: 2,
+      dates: [{ type: 'Draft sent date', date: -8, status: 'Done' }, { type: 'Client response date', date: -1, status: 'Scheduled', notes: 'Client said comments would be sent by this date.' }],
+      docs: [{ name: 'Client questionnaire', type: 'Client questionnaire', date: -38, status: 'Received' }, { name: 'Draft Will v1', type: 'Draft Will', date: -8, status: 'Sent to client' }] },
+
+    { client: 'Desmond Fictional', no: 'WIL-2026-004', lawyer: 'Alex Associate', status: 'Drafting', urgency: 'Normal',
+      inst: -25, exec: 25, next: 'Supervising lawyer to review draft', updated: 6,
+      profile: { relationshipStatus: 'Married', hasSpouse: 'yes', spouseName: 'Frances Fictional', spouseHasWill: 'no', hasChildren: 'yes', numChildren: '3',
+        childrenNames: 'Two children from first marriage (adults)\nOne child with current spouse (adult)', deceasedChildren: 'no', stepchildren: 'yes', childrenUnder18: 'no', childSpecialNeeds: 'no',
+        prevRelationship: 'yes', prevRelationshipNotes: 'First marriage ended in divorce (fictional details).', blendedFamily: 'yes', blendedNotes: 'Wishes to benefit children of both relationships.',
+        ownsRealProperty: 'yes', hasBusiness: 'no', hasCompany: 'no', hasFamilyTrust: 'no', hasSMSF: 'no', hasSuper: 'yes', hasBDBN: 'no', hasInvestments: 'no', hasOverseasAssets: 'no',
+        specificGifts: 'yes', giftNotes: 'Watch collection to eldest child; car to spouse.', hasPet: 'no', funeralWishes: 'no', vulnerableBeneficiaries: 'no' },
+      complete: 5, extra: 0,
+      notes: ['Client wants house to pass to daughter but wants son to receive equalisation payment.'],
+      docs: [{ name: 'Draft Will v1', type: 'Draft Will', date: -1, status: 'In draft' }] },
+
+    { client: 'Evelyn Example', no: 'WIL-2026-005', lawyer: 'Pat Partner', status: 'On Hold', urgency: 'Normal',
+      inst: -50, exec: null, next: 'Await advice on overseas property', updated: 24 * 5,
+      profile: { relationshipStatus: 'Single', hasSpouse: 'no', hasChildren: 'no', prevRelationship: 'no', blendedFamily: 'no', ownsRealProperty: 'yes',
+        hasBusiness: 'no', hasCompany: 'no', hasFamilyTrust: 'no', hasSMSF: 'no', hasSuper: 'yes', hasBDBN: 'no', hasInvestments: 'yes',
+        hasOverseasAssets: 'yes', overseasNotes: 'Apartment overseas (fictional location). Client believes a local Will may exist.', specificGifts: 'no', hasPet: 'no', funeralWishes: 'yes', funeralNotes: 'Cremation preferred.', vulnerableBeneficiaries: 'no' },
+      complete: 2, extra: 6,
+      tasks: [{ name: 'Obtain details of any overseas Will', category: 'Client communication', priority: 'Normal', due: 12, status: 'Waiting on Client' }],
+      dates: [{ type: 'Review date', date: 12, status: 'Scheduled', notes: 'Review whether matter can proceed.' }] },
+
+    { client: 'Frederick Demo', no: 'WIL-2026-006', lawyer: 'Alex Associate', status: 'Ready for Execution', urgency: 'Normal',
+      inst: -20, exec: 2, next: 'Signing appointment', updated: 10,
+      profile: { relationshipStatus: 'Single', hasSpouse: 'no', hasChildren: 'no', prevRelationship: 'no', blendedFamily: 'no', ownsRealProperty: 'no',
+        hasBusiness: 'no', hasCompany: 'no', hasFamilyTrust: 'no', hasSMSF: 'no', hasSuper: 'yes', hasBDBN: 'no', hasInvestments: 'no', hasOverseasAssets: 'no',
+        specificGifts: 'no', hasPet: 'no', funeralWishes: 'no', vulnerableBeneficiaries: 'no', executorName: 'Sibling (fictional)' },
+      complete: 6, extra: 1,
+      dates: [{ type: 'Execution date', date: 2, status: 'Scheduled', notes: 'Signing appointment at office, 10:00 am.' }],
+      docs: [{ name: 'Final Will — execution copy', type: 'Execution copy', date: -1, status: 'Final' }] },
+
+    { client: 'Georgina Mockford', no: 'WIL-2026-007', lawyer: 'Sam Solicitor', status: 'Executed', urgency: 'Low',
+      inst: -60, exec: -5, next: 'Send copy of executed Will to client', updated: 24 * 2,
+      profile: { relationshipStatus: 'Widowed', hasSpouse: 'no', hasChildren: 'yes', numChildren: '1', childrenNames: 'One adult child (fictional)', deceasedChildren: 'no', stepchildren: 'no',
+        childrenUnder18: 'no', childSpecialNeeds: 'no', prevRelationship: 'no', blendedFamily: 'no', ownsRealProperty: 'yes', hasBusiness: 'no', hasCompany: 'no', hasFamilyTrust: 'no',
+        hasSMSF: 'no', hasSuper: 'no', hasBDBN: 'no', hasInvestments: 'no', hasOverseasAssets: 'no', specificGifts: 'yes', giftNotes: 'Piano to niece (fictional).',
+        hasPet: 'yes', petNotes: 'Two cats — neighbour (fictional) has agreed to care for them.', funeralWishes: 'yes', funeralNotes: 'Burial.', vulnerableBeneficiaries: 'no' },
+      complete: 6, extra: 5,
+      tasks: [{ name: 'Send copy of executed Will to client', category: 'Post-execution', priority: 'Normal', due: 4, status: 'Not Started' }],
+      dates: [{ type: 'Execution date', date: -5, status: 'Done' }, { type: 'Follow-up date', date: 25, status: 'Scheduled', notes: 'Confirm storage receipt sent.' }],
+      docs: [{ name: 'Signed Will', type: 'Signed Will', date: -5, status: 'Stored', notes: 'Original in firm safe custody (prototype record only).' }] },
+
+    { client: 'Harold Specimen', no: 'WIL-2026-008', lawyer: 'Pat Partner', status: 'New Instruction', urgency: 'Urgent',
+      inst: -1, exec: null, next: 'Initial instructions meeting', updated: 1,
+      profile: { relationshipStatus: 'Married', hasSpouse: 'yes', spouseName: 'Helena Specimen', hasChildren: 'yes', numChildren: '2', childrenNames: 'Two adult children (fictional)',
+        deceasedChildren: 'no', stepchildren: 'no', childrenUnder18: 'no', childSpecialNeeds: 'no', prevRelationship: 'no', blendedFamily: 'no', ownsRealProperty: 'yes',
+        hasBusiness: 'yes', businessNotes: 'Family manufacturing business (fictional).', hasCompany: 'yes', companyNotes: 'Director and 50% shareholder of Specimen Holdings Pty Ltd (fictional).',
+        hasFamilyTrust: 'yes', trustName: 'Specimen Family Trust (fictional)', trustRole: 'Multiple roles', trustDeedHeld: 'no', hasSMSF: 'no', hasSuper: 'yes', hasBDBN: 'no',
+        hasInvestments: 'yes', hasOverseasAssets: 'no', specificGifts: 'no', hasPet: 'no', funeralWishes: 'no', vulnerableBeneficiaries: 'no' },
+      complete: 0, extra: 1,
+      tasks: [{ name: 'Initial instructions meeting', category: 'Instructions', priority: 'Urgent', due: 1, status: 'Not Started' },
+              { name: 'Request company and trust documents', category: 'Information from third party', priority: 'High', due: 5, status: 'Not Started' }] }
+  ];
+
+  return specs.map(function (s) {
+    var profile = clone(s.profile);
+    ['bdbnDate', 'bdbnExpiry'].forEach(function (k) { if (typeof profile[k] === 'number') profile[k] = D(profile[k]); });
+    var m = newMatter({
+      client: s.client, matterNo: s.no, lawyer: s.lawyer, status: s.status, urgency: s.urgency,
+      instructionDate: D(s.inst), targetExecDate: s.exec === null ? '' : D(s.exec), nextAction: s.next
+    }, profile, template);
+    m.sample = true;
+    var stamp = hoursAgo(s.updated);
+
+    // Complete whole stages, then the first N applicable items of the next stage.
+    STAGES.forEach(function (st) {
+      var items = stageItems(m, st.n);
+      if (st.n <= s.complete) items.forEach(function (it) { it.state = 'done'; it.stateAt = stamp; });
+      else if (st.n === s.complete + 1) items.slice(0, s.extra).forEach(function (it) { it.state = 'done'; it.stateAt = stamp; });
+    });
+    // Illustrate "not applicable" on one straightforward matter.
+    if (s.no === 'WIL-2026-006') { var dig = m.checklist.filter(function (i) { return i.text === 'Digital assets'; })[0]; if (dig) { dig.state = 'na'; dig.stateAt = stamp; dig.note = 'Client confirmed no digital assets of significance.'; dig.noteAt = stamp; } }
+    // Sample checklist note.
+    var firstDone = m.checklist.filter(function (i) { return i.state === 'done'; })[0];
+    if (firstDone) { firstDone.note = 'Sample note: recorded per firm procedure.'; firstDone.noteAt = stamp; }
+
+    (s.tasks || []).forEach(function (t) {
+      m.tasks.push({ id: uid('t'), name: t.name, description: t.description || '', category: t.category, assignee: s.lawyer, priority: t.priority,
+        due: D(t.due), status: t.status, notes: t.notes || '', createdAt: stamp, updatedAt: stamp });
+    });
+    (s.dates || []).forEach(function (d) {
+      m.dates.push({ id: uid('d'), type: d.type, label: '', date: D(d.date), status: d.status, notes: d.notes || '', createdAt: stamp });
+    });
+    (s.notes || []).forEach(function (n) {
+      m.notes.push({ id: uid('n'), author: s.lawyer, text: n, createdAt: stamp, updatedAt: null });
+    });
+    (s.docs || []).forEach(function (d) {
+      m.documents.push({ id: uid('doc'), name: d.name, type: d.type, date: D(d.date), status: d.status, notes: d.notes || '', createdAt: stamp });
+    });
+    m.createdAt = new Date(Date.now() - (-s.inst) * 86400000).toISOString();
+    m.updatedAt = stamp;
+    return m;
+  });
+}
+
+/* =====================================================================
+   7. UI STATE (not persisted)
+   ===================================================================== */
+var ui = {
+  filters: {
+    dash: { q: '', status: 'active', urgency: '', flag: '', sort: 'date' },
+    matters: { q: '', status: '', urgency: '', flag: '', sort: 'client' }
+  },
+  form: null,       // matter form state after a failed submit: {values, profile, errors, dupMatch}
+  openNote: null,   // checklist item id whose note editor is open
+  rec: null,        // {kind, id, values, errors} task/date/document form
+  noteEdit: null,   // matter note id being edited
+  tpl: null,        // {id|'new', values, errors} template item form
+  highlight: null   // element id to scroll to and flash after render
+};
+function resetTransient() { ui.form = null; ui.openNote = null; ui.rec = null; ui.noteEdit = null; ui.tpl = null; }
+
+/* =====================================================================
+   8. SHARED RENDERERS
+   ===================================================================== */
+function fieldHtml(f, value, error, name, extraAttrs) {
+  var id = 'f-' + name;
+  var attrs = ' id="' + id + '" name="' + esc(name) + '"' + (extraAttrs || '') + (error ? ' aria-invalid="true"' : '');
+  var cls = 'input' + (error ? ' err' : '');
+  var ctl;
+  if (f.type === 'textarea') ctl = '<textarea class="' + cls + '"' + attrs + ' rows="' + (f.rows || 2) + '"' + (f.placeholder ? ' placeholder="' + esc(f.placeholder) + '"' : '') + '>' + esc(value) + '</textarea>';
+  else if (f.type === 'select') ctl = '<select class="' + cls + '"' + attrs + '>' + options(f.options, value, f.blank !== undefined ? f.blank : (f.req ? undefined : '—')) + '</select>';
+  else ctl = '<input class="' + cls + '"' + attrs + ' type="' + (f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text') + '"' +
+    (f.type === 'number' ? ' min="0" max="50" step="1"' : '') + ' value="' + esc(value) + '" autocomplete="off"' + (f.placeholder ? ' placeholder="' + esc(f.placeholder) + '"' : '') + '>';
+  return '<div class="field' + (f.wide ? ' wide' : '') + '"><label class="lbl" for="' + id + '">' + esc(f.label) + (f.req ? ' <span class="req">*</span>' : '') + '</label>' + ctl +
+    (error ? '<div class="error" role="alert">' + esc(error) + '</div>' : f.hint ? '<div class="hint">' + esc(f.hint) + '</div>' : '') + '</div>';
+}
+
+/** How many workflow items a "Yes" answer adds (from a template or a matter checklist). */
+function triggerCount(items, k) {
+  return items.filter(function (t) { return t.type === 'conditional' && t.condition && t.condition.field === k; }).length;
+}
+
+/**
+ * Render client-circumstance questions.
+ * mode 'form' — inside the New/Edit Matter form (names p_<key>)
+ * mode 'live' — workspace editors that save immediately (data-pf)
+ */
+function profileHtml(fields, profile, mode, errors, triggerSource, mid) {
+  errors = errors || {};
+  var h = '<div class="q-list">';
+  fields.forEach(function (f) {
+    var val = profile[f.k] || '';
+    var nm = (mode === 'form' ? 'p_' : 'lv_') + f.k;
+    var live = mode === 'live' ? ' data-pf="' + f.k + '" data-mid="' + esc(mid) + '"' : '';
+    if (f.type === 'yn') {
+      var n = triggerCount(triggerSource, f.k);
+      h += '<div class="q"><div class="q-row"><span class="ql" id="ql-' + nm + '">' + esc(f.label) + '</span>' +
+        '<span class="yn" role="radiogroup" aria-labelledby="ql-' + nm + '">' +
+        '<label><input type="radio" name="' + nm + '" value="yes"' + (val === 'yes' ? ' checked' : '') + live + '><span>Yes</span></label>' +
+        '<label><input type="radio" name="' + nm + '" value="no"' + (val === 'no' ? ' checked' : '') + live + '><span>No</span></label></span></div>' +
+        (n ? '<div class="trig-note">' + (val === 'yes' ? 'Adds ' : 'Yes adds ') + n + ' workflow item' + (n === 1 ? '' : 's') + '</div>' : '') +
+        (errors[f.k] ? '<div class="field"><div class="error">' + esc(errors[f.k]) + '</div></div>' : '');
+      if (f.children) {
+        h += '<div class="subfields" data-show-if="' + f.k + '"' + (val === 'yes' ? '' : ' hidden') + '>' + profileHtml(f.children, profile, mode, errors, triggerSource, mid) + '</div>';
+      }
+      h += '</div>';
+    } else {
+      var def = Object.assign({}, f, { wide: true });
+      h += '<div class="q" style="max-width:640px">' + fieldHtml(def, val, errors[f.k], nm, live) + '</div>';
+    }
+  });
+  return h + '</div>';
+}
+
+function emptyRow(text) { return '<div class="empty">' + esc(text) + '</div>'; }
+
+/* =====================================================================
+   9. MATTER TABLE (dashboard + matters page)
+   ===================================================================== */
+var SORTS = {
+  date: 'Important date', updated: 'Last updated', client: 'Client', matter: 'Matter number', urgency: 'Urgency', progress: 'Progress (lowest first)'
+};
+
+function filteredMatters(scope) {
+  var f = ui.filters[scope], q = norm(f.q);
+  var rows = db.matters.map(function (m) { return { m: m, flags: flagsOf(m), prog: progressOf(m), imp: importantDate(m) }; });
+  rows = rows.filter(function (r) {
+    var m = r.m;
+    if (f.status === 'active' && !isActive(m)) return false;
+    if (f.status && f.status !== 'active' && m.status !== f.status) return false;
+    if (f.urgency && m.urgency !== f.urgency) return false;
+    if (f.flag && !r.flags[f.flag]) return false;
+    if (q && [m.client, m.matterNo, m.lawyer].join(' ').toLowerCase().indexOf(q) === -1) return false;
+    return true;
+  });
+  var byDate = function (r) { return r.imp ? r.imp.date : '9999-12-31'; };
+  rows.sort(function (a, b) {
+    switch (f.sort) {
+      case 'client': return a.m.client.localeCompare(b.m.client);
+      case 'matter': return a.m.matterNo.localeCompare(b.m.matterNo);
+      case 'urgency': return (URGENCY_RANK[a.m.urgency] - URGENCY_RANK[b.m.urgency]) || byDate(a).localeCompare(byDate(b));
+      case 'progress': return a.prog.pct - b.prog.pct;
+      case 'date': return byDate(a).localeCompare(byDate(b)) || a.m.client.localeCompare(b.m.client);
+      default: return b.m.updatedAt.localeCompare(a.m.updatedAt);
+    }
+  });
+  return rows;
+}
+
+function tableToolbar(scope) {
+  var f = ui.filters[scope];
+  var statusOpts = [{ v: 'active', l: 'Active matters' }, { v: '', l: 'All statuses' }].concat(STATUSES);
+  var sortKeys = scope === 'matters' ? ['client', 'matter', 'updated', 'date', 'urgency', 'progress'] : ['date', 'updated', 'urgency', 'client', 'matter', 'progress'];
+  return '<div class="toolbar">' +
+    '<input class="input grow" type="search" placeholder="Search client, matter number or lawyer…" aria-label="Search matters" data-filter="' + scope + '.q" value="' + esc(f.q) + '">' +
+    '<select class="input auto" aria-label="Filter by status" data-filter="' + scope + '.status">' + options(statusOpts, f.status) + '</select>' +
+    '<select class="input auto" aria-label="Filter by urgency" data-filter="' + scope + '.urgency">' + options([{ v: '', l: 'Any urgency' }].concat(URGENCIES), f.urgency) + '</select>' +
+    '<select class="input auto" aria-label="Filter by attention" data-filter="' + scope + '.flag">' + options([{ v: '', l: 'Any attention' }, { v: 'attention', l: 'Requiring attention' }, { v: 'overdue', l: 'Overdue' }, { v: 'soon', l: 'Due soon' }, { v: 'waiting', l: 'Waiting on client' }], f.flag) + '</select>' +
+    '<select class="input auto" aria-label="Sort by" data-filter="' + scope + '.sort">' + options(sortKeys.map(function (k) { return { v: k, l: 'Sort: ' + SORTS[k] }; }), f.sort) + '</select>' +
+    '<button type="button" class="btn btn-ghost btn-sm" data-action="clear-filters" data-scope="' + scope + '">Clear</button>' +
+    '</div>';
+}
+
+function matterTableHtml(scope) {
+  var rows = filteredMatters(scope);
+  if (!db.matters.length) return emptyRow('No matters yet. Use New Matter to create one, or Reset Sample Data to reload the examples.');
+  if (!rows.length) return emptyRow('No matters match these filters.');
+  var h = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Client</th><th>Matter No.</th><th>Lawyer</th><th>Status</th><th>Urgency</th><th>Progress</th><th>Next Action</th><th>Important Date</th><th>Last Updated</th></tr></thead><tbody>';
+  rows.forEach(function (r) {
+    var m = r.m, cls = 'row-link' + (r.flags.overdue ? ' flag-red' : r.flags.attention ? ' flag-amber' : '');
+    h += '<tr class="' + cls + '" data-action="open-matter" data-id="' + esc(m.id) + '" tabindex="0">' +
+      '<td class="c-client"><a class="client" href="#/matter/' + esc(m.id) + '">' + esc(m.client) + '</a>' + (m.sample ? '<div><span class="sample">SAMPLE DATA</span></div>' : '') + '</td>' +
+      '<td class="mono nowrap">' + esc(m.matterNo) + '</td>' +
+      '<td class="nowrap">' + (esc(m.lawyer) || '<span class="small">—</span>') + '</td>' +
+      '<td>' + statusBadge(m.status) + '</td>' +
+      '<td>' + urgencyBadge(m.urgency) + '</td>' +
+      '<td><div class="pcell">' + pbar(r.prog.pct) + '<span class="n">' + r.prog.pct + '%</span></div></td>' +
+      '<td class="c-next">' + (esc(m.nextAction) || '<span class="small">—</span>') + '</td>' +
+      '<td>' + (r.imp ? '<div class="small">' + esc(r.imp.label) + '</div>' + dueHtml(r.imp.date) : '<span class="small">—</span>') + '</td>' +
+      '<td class="small nowrap" title="' + esc(fmtDateTime(m.updatedAt)) + '">' + fmtDate(isoOf(new Date(m.updatedAt))) + '</td></tr>';
+  });
+  h += '</tbody></table></div><div class="tbl-foot">Showing ' + rows.length + ' of ' + db.matters.length + ' matters</div>';
+  return h;
+}
+
+/* =====================================================================
+   10. DASHBOARD
+   ===================================================================== */
+function viewDashboard() {
+  var active = db.matters.filter(isActive);
+  var flagged = active.map(function (m) { return { m: m, f: flagsOf(m) }; });
+  var count = function (k) { return flagged.filter(function (x) { return x.f[k]; }).length; };
+  var today = todayISO();
+
+  // Matters requiring attention
+  var attn = flagged.filter(function (x) { return x.f.attention; }).sort(function (a, b) {
+    return (Number(b.f.overdue) - Number(a.f.overdue)) || (Number(b.f.soon) - Number(a.f.soon)) || a.m.client.localeCompare(b.m.client);
+  });
+  var attnHtml = attn.length ? '<ul class="list">' + attn.map(function (x) {
+    var reasons = x.f.items.filter(function (i) { return i.level !== 'info'; });
+    var seen = {};
+    var chips = reasons.filter(function (i) { if (seen[i.cat]) return false; seen[i.cat] = 1; return true; }).map(function (i) {
+      return badge(i.cat, i.level === 'overdue' ? 'red' : i.level === 'soon' ? 'amber' : 'violet');
+    }).join('');
+    var first = reasons[0];
+    return '<li><a class="row" href="#/matter/' + esc(x.m.id) + '"><div><div><strong>' + esc(x.m.client) + '</strong> <span class="mono small">' + esc(x.m.matterNo) + '</span>' + sampleTag(x.m) + '</div>' +
+      '<div class="reasons">' + chips + '</div>' + (first ? '<div class="small" style="margin-top:3px">' + esc(first.text) + '</div>' : '') + '</div>' +
+      '<div class="nowrap" style="text-align:right">' + (first && first.date ? dueHtml(first.date) : '') + '</div></a></li>';
+  }).join('') + '</ul>' : emptyRow('Nothing requires attention right now.');
+
+  // Upcoming dates (next 30 days, plus anything overdue)
+  var dates = [];
+  active.forEach(function (m) { datedItems(m).forEach(function (d) { if (daysBetween(today, d.date) <= 30) dates.push({ m: m, d: d }); }); });
+  dates.sort(function (a, b) { return a.d.date.localeCompare(b.d.date); });
+  var datesHtml = dates.length ? '<ul class="list">' + dates.slice(0, 10).map(function (x) {
+    return '<li><a class="row" href="#/matter/' + esc(x.m.id) + '/' + x.d.tab + '"><div><div>' + esc(x.d.label) + '</div><div class="small">' + esc(x.m.client) + ' · <span class="mono">' + esc(x.m.matterNo) + '</span></div></div><div style="text-align:right">' + dueHtml(x.d.date) + '</div></a></li>';
+  }).join('') + '</ul>' + (dates.length > 10 ? '<div class="tbl-foot">' + (dates.length - 10) + ' more in the next 30 days</div>' : '') : emptyRow('No dates in the next 30 days.');
+
+  // Recent matters
+  var recent = db.matters.slice().sort(function (a, b) { return b.updatedAt.localeCompare(a.updatedAt); }).slice(0, 5);
+  var recentHtml = recent.length ? '<ul class="list">' + recent.map(function (m) {
+    var p = progressOf(m);
+    return '<li><a class="row" href="#/matter/' + esc(m.id) + '"><div><div><strong>' + esc(m.client) + '</strong>' + sampleTag(m) + '</div><div class="small">' + esc(m.status) + ' · ' + p.pct + '% · updated ' + fmtDateTime(m.updatedAt) + '</div></div></a></li>';
+  }).join('') + '</ul>' : emptyRow('No matters yet.');
+
+  function kpi(label, value, desc, tone, flag) {
+    return '<a href="#/dashboard" class="card kpi ' + tone + '" data-action="dash-flag" data-flag="' + flag + '"><div class="l">' + label + '</div><div class="v">' + value + '</div><div class="d">' + desc + '</div></a>';
+  }
+
+  return '<div class="page-head"><div><h1>Dashboard</h1><div class="sub">' + fmtDate(today) + ' · ' + active.length + ' active Wills matters</div></div>' +
+    '<a class="btn btn-primary" href="#/new">+ New Matter</a></div>' +
+    '<div class="grid g-4">' +
+      kpi('Active Matters', active.length, 'Not finalised or closed', 'blue', '') +
+      kpi('Requiring Attention', count('attention'), 'Overdue, due soon or waiting', 'amber', 'attention') +
+      kpi('Overdue', count('overdue'), 'Task, date or execution passed', 'red', 'overdue') +
+      kpi('Due Soon', count('soon'), 'Within ' + DUE_SOON_DAYS + ' days / execution within ' + EXECUTION_SOON_DAYS, 'amber', 'soon') +
+    '</div>' +
+    '<div class="grid g-3-2" style="margin-top:18px">' +
+      '<section class="card"><div class="card-h"><h2>Matters Requiring Attention</h2><span class="aside">' + attn.length + ' matter' + (attn.length === 1 ? '' : 's') + '</span></div>' + attnHtml + '</section>' +
+      '<div class="stack"><section class="card"><div class="card-h"><h2>Upcoming Dates</h2><span class="aside">Next 30 days</span></div>' + datesHtml + '</section>' +
+      '<section class="card"><div class="card-h"><h2>Recent Matters</h2></div>' + recentHtml + '</section></div>' +
+    '</div>' +
+    '<section class="card" id="dash-table" style="margin-top:18px"><div class="card-h"><h2>Matters</h2><a class="aside" href="#/matters">Open full matters list</a></div>' + tableToolbar('dash') + '<div id="tbl-dash">' + matterTableHtml('dash') + '</div></section>';
+}
+
+/* =====================================================================
+   11. MATTERS PAGE
+   ===================================================================== */
+function viewMatters() {
+  return '<div class="page-head"><div><h1>Matters</h1><div class="sub">All Wills matters, including finalised and closed.</div></div><a class="btn btn-primary" href="#/new">+ New Matter</a></div>' +
+    '<section class="card">' + tableToolbar('matters') + '<div id="tbl-matters">' + matterTableHtml('matters') + '</div></section>';
+}
+
+/* =====================================================================
+   12. NEW / EDIT MATTER FORM
+   ===================================================================== */
+var MATTER_FIELDS = [
+  { k: 'client', label: 'Client', type: 'text', req: true, placeholder: 'Client full name (fictional only)', wide: true },
+  { k: 'matterNo', label: 'Matter Number', type: 'text', req: true, hint: 'Must be unique, e.g. WIL-2026-009' },
+  { k: 'lawyer', label: 'Responsible Lawyer', type: 'text' },
+  { k: 'status', label: 'Status', type: 'select', options: STATUSES, req: true },
+  { k: 'urgency', label: 'Urgency', type: 'select', options: URGENCIES, req: true },
+  { k: 'instructionDate', label: 'Instruction Date', type: 'date' },
+  { k: 'targetExecDate', label: 'Target Execution Date', type: 'date' },
+  { k: 'nextAction', label: 'Next Action', type: 'text', wide: true, placeholder: 'e.g. Initial instructions meeting' }
+];
+
+function suggestMatterNo() {
+  var year = todayISO().slice(0, 4), prefix = 'WIL-' + year + '-', max = 0;
+  db.matters.forEach(function (m) { if (m.matterNo.indexOf(prefix) === 0) { var n = parseInt(m.matterNo.slice(prefix.length), 10); if (n > max) max = n; } });
+  var next = String(max + 1); while (next.length < 3) next = '0' + next;
+  return prefix + next;
+}
+
+function viewMatterForm(mode, m) {
+  var st = ui.form || {};
+  var values = st.values || (m ? { client: m.client, matterNo: m.matterNo, lawyer: m.lawyer, status: m.status, urgency: m.urgency, instructionDate: m.instructionDate, targetExecDate: m.targetExecDate, nextAction: m.nextAction }
+    : { matterNo: suggestMatterNo(), status: 'New Instruction', urgency: 'Normal', instructionDate: todayISO() });
+  var profile = st.profile || (m ? m.profile : {});
+  var errors = st.errors || {};
+  var trig = m ? m.checklist : db.template;
+  var errCount = Object.keys(errors).filter(function (k) { return k !== 'dup'; }).length;
+
+  var head = mode === 'edit'
+    ? '<div class="crumbs"><a href="#/matters">Matters</a><span class="sep">/</span><a href="#/matter/' + esc(m.id) + '">' + esc(m.matterNo) + '</a><span class="sep">/</span>Edit</div><div class="page-head"><div><h1>Edit matter</h1><div class="sub">' + esc(m.client) + sampleTag(m) + '</div></div></div>'
+    : '<div class="page-head"><div><h1>New Matter</h1><div class="sub">The current Checklist Template is copied onto the new matter. Your answers below decide which additional workflow items apply.</div></div></div>';
+
+  var dup = '';
+  if (errors.dup) {
+    dup = '<div class="alert warn" role="alert"><strong>Possible duplicate:</strong> ' + esc(errors.dup) +
+      '<label style="display:flex;gap:8px;align-items:center;margin-top:8px;color:var(--ink)"><input type="checkbox" name="dupOk" value="1"> This is a separate matter for the same client — create it anyway.</label></div>';
+  }
+
+  var mf = '<div class="form-grid">' + MATTER_FIELDS.map(function (f) { return fieldHtml(f, values[f.k] || '', errors[f.k], 'm_' + f.k); }).join('') + '</div>';
+
+  function section(title, intro, body) {
+    return '<div class="form-section"><div class="fs-h"><h2>' + esc(title) + '</h2>' + (intro ? '<p>' + esc(intro) + '</p>' : '') + '</div><div>' + body + '</div></div>';
+  }
+
+  return head +
+    (errCount ? '<div class="alert err" role="alert">Please correct the ' + errCount + ' highlighted field' + (errCount === 1 ? '' : 's') + '. Your entries have been kept.</div>' : '') +
+    '<form class="card" data-form="matter" data-mode="' + mode + '"' + (m ? ' data-mid="' + esc(m.id) + '"' : '') + ' novalidate autocomplete="off">' +
+      (dup ? '<div style="padding:18px 22px 0">' + dup + '</div>' : '') +
+      section('Client & matter', 'Only Client and Matter Number are required. Use fictional details only.', mf) +
+      section('Family', 'Answering “Yes” reveals further questions and adds workflow items to the checklist.', profileHtml(PROFILE_GROUPS.family.fields, profile, 'form', errors, trig)) +
+      section('Assets', PROFILE_GROUPS.assets.intro, profileHtml(PROFILE_GROUPS.assets.fields, profile, 'form', errors, trig)) +
+      section('Other', PROFILE_GROUPS.other.intro, profileHtml(PROFILE_GROUPS.other.fields, profile, 'form', errors, trig)) +
+      '<div class="form-actions"><div>' + (mode === 'edit' ? '<button type="button" class="btn btn-danger" data-action="matter-delete" data-id="' + esc(m.id) + '">Delete matter</button>' : '') + '</div>' +
+      '<div style="display:flex;gap:8px"><a class="btn btn-secondary" href="' + (m ? '#/matter/' + esc(m.id) : '#/dashboard') + '">Cancel</a>' +
+      '<button type="submit" class="btn btn-primary">' + (mode === 'edit' ? 'Save changes' : 'Create matter') + '</button></div></div>' +
+    '</form>';
+}
+
+/** Read and validate the matter form. Returns {values, profile, errors}. */
+function readMatterForm(form, mode, existing) {
+  var values = {}, errors = {}, profile = {};
+  MATTER_FIELDS.forEach(function (f) {
+    var el = form.elements['m_' + f.k];
+    values[f.k] = el ? String(el.value).trim() : '';
+    if (f.type === 'date' && el && el.validity && el.validity.badInput) errors[f.k] = 'Enter a complete, valid date';
+  });
+  Object.keys(FIELD_INDEX).forEach(function (k) {
+    var def = FIELD_INDEX[k].def, el = form.elements['p_' + k];
+    if (!el) return;
+    if (def.type === 'yn') { var c = form.querySelector('input[name="p_' + k + '"]:checked'); profile[k] = c ? c.value : ''; }
+    else {
+      profile[k] = String(el.value).trim();
+      if (def.type === 'date' && el.validity && el.validity.badInput) errors[k] = 'Enter a complete, valid date';
+      else if (def.type === 'date' && profile[k] && !isValidISO(profile[k])) errors[k] = 'Enter a valid date';
+      if (def.type === 'number' && profile[k] !== '' && !/^\d{1,2}$/.test(profile[k])) errors[k] = 'Enter a whole number between 0 and 50';
+    }
+  });
+
+  if (!values.client) errors.client = 'Client name is required';
+  if (!values.matterNo) errors.matterNo = 'Matter number is required';
+  else if (!/^[A-Za-z0-9][A-Za-z0-9\-\/.]*$/.test(values.matterNo)) errors.matterNo = 'Use letters, numbers, hyphens, slashes or full stops only';
+  else if (db.matters.some(function (x) { return norm(x.matterNo) === norm(values.matterNo) && (!existing || x.id !== existing.id); })) errors.matterNo = 'This matter number is already in use';
+  if (STATUSES.indexOf(values.status) === -1) errors.status = 'Choose a status';
+  if (URGENCIES.indexOf(values.urgency) === -1) errors.urgency = 'Choose an urgency';
+  ['instructionDate', 'targetExecDate'].forEach(function (k) { if (!errors[k] && values[k] && !isValidISO(values[k])) errors[k] = 'Enter a valid date'; });
+  if (!errors.instructionDate && !errors.targetExecDate && values.instructionDate && values.targetExecDate && values.targetExecDate < values.instructionDate) {
+    errors.targetExecDate = 'Target execution date cannot be before the instruction date';
+  }
+  if (profile.hasChildren === 'yes' && profile.numChildren === '0') errors.numChildren = 'Number of children is 0 but “Has children?” is Yes';
+
+  // Accidental duplicate: same client name already has a matter (new matters only).
+  if (mode === 'new' && values.client && !form.querySelector('input[name="dupOk"]:checked')) {
+    var same = db.matters.filter(function (x) { return norm(x.client) === norm(values.client); });
+    if (same.length) errors.dup = 'A matter already exists for “' + values.client + '” (' + same.map(function (x) { return x.matterNo; }).join(', ') + ').';
+  }
+  return { values: values, profile: profile, errors: errors };
+}
+
+/* =====================================================================
+   13. MATTER WORKSPACE
+   ===================================================================== */
+function viewMatter(m, tab) {
+  var p = progressOf(m);
+  var tabCounts = {};
+  TABS.forEach(function (t) {
+    if (t.stages) tabCounts[t.k] = { n: t.stages.reduce(function (s, n) { var st = p.stages[n - 1]; return s + (st.total - st.done); }, 0) };
+  });
+  var fam = familyTriggered(m).filter(function (i) { return i.state === 'open'; }).length;
+  tabCounts.family = { n: fam };
+  var openTasks = m.tasks.filter(isOpenTask), overdueTasks = openTasks.filter(function (t) { return t.due && t.due < todayISO(); });
+  tabCounts.tasks = { n: openTasks.length, red: overdueTasks.length > 0 };
+  var overdueDates = m.dates.filter(function (d) { return d.status !== 'Done' && d.date && d.date < todayISO(); }).length;
+  tabCounts.dates = { n: overdueDates, red: overdueDates > 0 };
+  tabCounts.notes = { n: m.notes.length };
+  tabCounts.documents = { n: m.documents.length };
+
+  var header = '<div class="crumbs"><a href="#/matters">Matters</a><span class="sep">/</span><span class="mono">' + esc(m.matterNo) + '</span></div>' +
+    '<div class="m-head"><div class="m-head-top"><div style="min-width:0;flex:1 1 380px">' +
+      '<h1>' + esc(m.client) + sampleTag(m) + '</h1>' +
+      '<div class="m-meta"><span><span class="k">Matter</span> <span class="mono">' + esc(m.matterNo) + '</span></span>' +
+      '<span><span class="k">Lawyer</span> ' + (esc(m.lawyer) || '—') + '</span>' +
+      '<span><span class="k">Instructed</span> ' + fmtDate(m.instructionDate) + '</span>' +
+      '<span><span class="k">Target execution</span> ' + fmtDate(m.targetExecDate) + '</span></div>' +
+      '<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">' + statusBadge(m.status) + urgencyBadge(m.urgency) + '</div>' +
+    '</div><div class="m-ctrls">' +
+      '<div class="row"><label for="hdr-status">Status</label><select id="hdr-status" class="input auto" data-hdr="status" data-mid="' + esc(m.id) + '">' + options(STATUSES, m.status) + '</select>' +
+      '<label for="hdr-urgency">Urgency</label><select id="hdr-urgency" class="input auto" data-hdr="urgency" data-mid="' + esc(m.id) + '">' + options(URGENCIES, m.urgency) + '</select>' +
+      '<a class="btn btn-secondary" href="#/matter/' + esc(m.id) + '/edit">Edit matter</a></div>' +
+      '<div class="m-prog"><div class="top"><span class="small" style="text-transform:uppercase;letter-spacing:.5px;font-weight:600">Progress</span><span><span class="pct" id="hdr-pct">' + p.pct + '%</span> <span class="small">' + p.done + ' of ' + p.total + '</span></span></div>' + pbar(p.pct) + '</div>' +
+    '</div></div>' +
+    '<nav class="tabs" aria-label="Matter sections">' + TABS.map(function (t) {
+      var c = tabCounts[t.k];
+      return '<a href="#/matter/' + esc(m.id) + '/' + t.k + '"' + (t.k === tab ? ' class="active" aria-current="page"' : '') + '>' + esc(t.label) +
+        (c && c.n ? '<span class="cnt' + (c.red ? ' red' : '') + '">' + c.n + '</span>' : '') + '</a>';
+    }).join('') + '</nav></div>';
+
+  var body;
+  switch (tab) {
+    case 'instructions': body = tabInstructions(m); break;
+    case 'family': body = tabFamily(m); break;
+    case 'estate': body = tabProfileAndStages(m, 'assets', 'Assets', [3]); break;
+    case 'beneficiaries': body = tabProfileAndStages(m, 'other', 'Gifts, wishes & beneficiary considerations', [4]); break;
+    case 'executors': body = tabExecutors(m); break;
+    case 'drafting': body = stagesHtml(m, [5, 6]); break;
+    case 'execution': body = tabExecution(m); break;
+    case 'tasks': body = tabTasks(m); break;
+    case 'dates': body = tabDates(m); break;
+    case 'notes': body = tabNotes(m); break;
+    case 'documents': body = tabDocuments(m); break;
+    default: body = tabOverview(m, p);
+  }
+  return header + attentionPanel(m, tab) + body;
+}
+
+/* ---------- "What needs my attention?" ---------- */
+function attentionPanel(m, tab) {
+  var items = attentionFor(m);
+  var next = nextOpenItem(m);
+  var urgent = items.filter(function (i) { return i.level !== 'info'; }).length;
+  var compact = tab !== 'overview';
+  var sub = !isActive(m) ? 'This matter is ' + m.status.toLowerCase() + '.' : urgent ? urgent + ' item' + (urgent === 1 ? '' : 's') + ' need attention' : 'Nothing overdue or due soon.';
+  var list = '';
+  if (!compact) {
+    list = items.length ? '<ul class="attn-list">' + items.map(function (i) {
+      return '<li><a href="#/matter/' + esc(m.id) + '/' + i.tab + '" class="lv-' + i.level + '" data-action="goto" data-mid="' + esc(m.id) + '" data-tab="' + i.tab + '" data-anchor="' + esc(i.anchor || '') + '">' +
+        '<div><div class="t">' + esc(i.text) + '</div><div class="d">' + esc(i.detail || i.cat) + '</div></div>' + (i.date ? '<div class="nowrap" style="font-size:12.5px">' + dueHtml(i.date) + '</div>' : '') + '</a></li>';
+    }).join('') + '</ul>' : '<div class="empty">No outstanding items.</div>';
+  }
+  return '<section class="attn"><div class="attn-h"><div><h2>What needs my attention?</h2><div class="s">' + esc(sub) +
+    (compact && items.length ? ' · <a href="#/matter/' + esc(m.id) + '">View on Overview</a>' : '') + '</div></div>' +
+    (next ? '<button type="button" class="btn btn-primary" data-action="continue" data-mid="' + esc(m.id) + '">Continue: ' + esc(next.text.length > 48 ? next.text.slice(0, 48) + '…' : next.text) + ' ' + ICON.arrow + '</button>' : '<span class="badge b-green">All applicable checklist items complete</span>') +
+    '</div>' + list + '</section>';
+}
+
+/* ---------- Checklist ---------- */
+function itemHtml(m, it, showStage) {
+  var state = it.state;
+  var cls = 'item' + (it.type === 'conditional' ? ' cond' : '') + (state === 'done' ? ' is-done' : state === 'na' ? ' is-na' : '');
+  var status = state === 'done' ? '<span class="st done">Completed ' + fmtDate(isoOf(new Date(it.stateAt))) + '</span>'
+    : state === 'na' ? '<span class="st na">Not applicable</span>' : '<span class="st open">Outstanding</span>';
+  var box = state === 'na'
+    ? '<button type="button" class="cbx na" disabled aria-label="Not applicable">–</button>'
+    : '<button type="button" class="cbx' + (state === 'done' ? ' on' : '') + '" role="checkbox" aria-checked="' + (state === 'done') + '" aria-label="' + (state === 'done' ? 'Mark incomplete: ' : 'Mark complete: ') + esc(it.text) + '" data-action="item-toggle" data-mid="' + esc(m.id) + '" data-iid="' + esc(it.id) + '">' + (state === 'done' ? ICON.check : '') + '</button>';
+  var note = '';
+  if (ui.openNote === it.id) {
+    note = '<form class="note-form" data-form="item-note" data-mid="' + esc(m.id) + '" data-iid="' + esc(it.id) + '"><textarea class="input" name="note" rows="3" aria-label="Note for ' + esc(it.text) + '" placeholder="Record details for this item…">' + esc(it.note) + '</textarea>' +
+      '<div class="row"><button class="btn btn-primary btn-sm" type="submit">Save note</button><button class="btn btn-ghost btn-sm" type="button" data-action="item-note-cancel">Cancel</button>' +
+      (it.note ? '<button class="btn btn-ghost btn-sm" type="button" data-action="item-note-remove" data-mid="' + esc(m.id) + '" data-iid="' + esc(it.id) + '">Remove note</button>' : '') + '</div></form>';
+  } else if (it.note) {
+    note = '<div class="note">' + esc(it.note) + (it.noteAt ? '<div class="small" style="margin-top:2px">Note updated ' + fmtDateTime(it.noteAt) + '</div>' : '') + '</div>';
+  }
+  return '<li class="' + cls + '" id="item-' + esc(it.id) + '">' + box +
+    '<div class="body"><div class="txt">' + esc(it.text) + '</div>' + (it.guidance ? '<div class="guid">' + esc(it.guidance) + '</div>' : '') +
+    '<div class="meta">' + status + (showStage ? '<span class="small">Stage ' + it.stage + ' — ' + esc(STAGES[it.stage - 1].name) + '</span>' : '') +
+    (it.type === 'conditional' ? '<span class="trig">Triggered: ' + esc(conditionText(it.condition)) + '</span>' : '') + '</div>' + note + '</div>' +
+    '<div class="acts">' +
+      '<button type="button" class="btn btn-ghost btn-xs" data-action="item-na" data-mid="' + esc(m.id) + '" data-iid="' + esc(it.id) + '">' + (state === 'na' ? 'Restore' : 'N/A') + '</button>' +
+      '<button type="button" class="btn btn-ghost btn-xs" data-action="item-note-open" data-iid="' + esc(it.id) + '">' + (it.note ? 'Edit note' : 'Add note') + '</button>' +
+    '</div></li>';
+}
+
+function stageHtml(m, n) {
+  var st = STAGES[n - 1], items = stageItems(m, n);
+  var p = progressOf(m).stages[n - 1];
+  var core = items.filter(function (i) { return i.type !== 'conditional'; });
+  var add = items.filter(function (i) { return i.type === 'conditional'; });
+  return '<section class="stage" id="stage-' + n + '"><div class="stage-h"><div class="grow"><div class="n">Stage ' + n + '</div><h3>' + esc(st.name) + '</h3></div>' +
+    '<div class="sp">' + pbar(p.pct) + '<span>' + p.done + '/' + p.total + '</span></div></div>' +
+    '<div class="sub-h">Core workflow</div>' +
+    (core.length ? '<ul class="items">' + core.map(function (i) { return itemHtml(m, i); }).join('') + '</ul>' : emptyRow('No core items in this stage.')) +
+    (add.length ? '<div class="sub-h add">Additional workflow — triggered by client circumstances</div><ul class="items">' + add.map(function (i) { return itemHtml(m, i); }).join('') + '</ul>' : '') +
+    '</section>';
+}
+function stagesHtml(m, ns) { return ns.map(function (n) { return stageHtml(m, n); }).join(''); }
+
+/* ---------- Overview ---------- */
+function tabOverview(m, p) {
+  var cur = nextOpenItem(m);
+  var stagesList = '<ul class="sp-list">' + p.stages.map(function (s) {
+    var numCls = s.total && s.done === s.total ? 'done' : cur && cur.stage === s.n ? 'cur' : '';
+    return '<li><a href="#/matter/' + esc(m.id) + '/' + s.tab + '" data-action="goto" data-mid="' + esc(m.id) + '" data-tab="' + s.tab + '" data-anchor="stage-' + s.n + '"><span class="num ' + numCls + '">' + s.n + '</span><span>' + esc(s.name) + '</span>' + pbar(s.pct) + '<span class="c">' + s.done + '/' + s.total + (s.na ? ' · ' + s.na + ' N/A' : '') + '</span></a></li>';
+  }).join('') + '</ul>';
+
+  // Circumstances → workflow summary
+  var yes = CONDITION_FIELDS.filter(function (k) { return answerOf(m.profile, k) === 'yes'; });
+  var chips = yes.map(function (k) {
+    var n = m.checklist.filter(function (i) { return i.type === 'conditional' && i.condition && i.condition.field === k && itemApplies(m, i); }).length;
+    return '<span class="chip' + (n ? '' : ' grey') + '">' + esc(fieldLabel(k).replace(/\?$/, '')) + (n ? ' · +' + n + ' item' + (n === 1 ? '' : 's') : '') + '</span>';
+  }).join('');
+  var triggered = applicableItems(m).filter(function (i) { return i.type === 'conditional'; }).length;
+  var coreCount = applicableItems(m).length - triggered;
+  var unanswered = CONDITION_FIELDS.filter(function (k) { var node = FIELD_INDEX[k]; return !node.parent && !m.profile[k] && node.group !== 'executors'; }).length;
+
+  var openTasks = m.tasks.filter(isOpenTask).sort(function (a, b) { return (a.due || '9').localeCompare(b.due || '9'); }).slice(0, 4);
+  var lastNote = m.notes.slice().sort(function (a, b) { return b.createdAt.localeCompare(a.createdAt); })[0];
+
+  return '<div class="grid g-3-2">' +
+    '<section class="card"><div class="card-h"><h2>Progress by stage</h2><span class="aside">' + p.done + ' completed of ' + p.total + ' applicable</span></div>' + stagesList + '</section>' +
+    '<section class="card"><div class="card-h"><h2>Key details</h2><a class="aside" href="#/matter/' + esc(m.id) + '/edit">Edit</a></div><dl class="dl">' +
+      '<div><dt>Next action</dt><dd>' + (esc(m.nextAction) || '—') + '</dd></div>' +
+      '<div><dt>Instruction date</dt><dd>' + fmtDate(m.instructionDate) + '</dd></div>' +
+      '<div><dt>Target execution</dt><dd>' + (m.targetExecDate ? dueHtml(m.targetExecDate, isExecuted(m)) : '—') + '</dd></div>' +
+      '<div><dt>Relationship status</dt><dd>' + (esc(m.profile.relationshipStatus) || '—') + '</dd></div>' +
+      '<div><dt>Open tasks</dt><dd>' + (openTasks.length ? openTasks.map(function (t) { return esc(t.name) + (t.due ? ' — ' + dueHtml(t.due) : ''); }).join('<br>') : '—') + '</dd></div>' +
+      '<div><dt>Latest note</dt><dd>' + (lastNote ? esc(lastNote.text.length > 160 ? lastNote.text.slice(0, 160) + '…' : lastNote.text) + '<div class="small">' + fmtDateTime(lastNote.createdAt) + ' · ' + esc(lastNote.author) + '</div>' : '—') + '</dd></div>' +
+    '</dl></section></div>' +
+    '<section class="card" style="margin-top:18px"><div class="card-h"><h2>Client circumstances &amp; workflow</h2><span class="aside">' + coreCount + ' core items + ' + triggered + ' triggered by circumstances</span></div><div class="card-b">' +
+      (chips ? '<div class="chips">' + chips + '</div>' : '<div class="small">No circumstances answered “Yes” yet.</div>') +
+      '<p class="small" style="margin:12px 0 0">Answers are edited in the Family, Estate and Beneficiaries tabs. Changing an answer immediately adds or removes the related workflow items.' +
+      (unanswered ? ' <strong>' + unanswered + ' question' + (unanswered === 1 ? '' : 's') + ' not yet answered.</strong>' : '') + '</p></div></section>';
+}
+
+/* ---------- Instructions ---------- */
+function tabInstructions(m) {
+  return '<section class="card" style="margin-bottom:16px"><div class="card-h"><h2>Matter details</h2><a class="btn btn-secondary btn-sm" href="#/matter/' + esc(m.id) + '/edit">Edit matter</a></div><dl class="dl">' +
+    '<div><dt>Client</dt><dd>' + esc(m.client) + '</dd></div>' +
+    '<div><dt>Matter number</dt><dd class="mono">' + esc(m.matterNo) + '</dd></div>' +
+    '<div><dt>Responsible lawyer</dt><dd>' + (esc(m.lawyer) || '—') + '</dd></div>' +
+    '<div><dt>Status / urgency</dt><dd>' + esc(m.status) + ' · ' + esc(m.urgency) + '</dd></div>' +
+    '<div><dt>Instruction date</dt><dd>' + fmtDate(m.instructionDate) + '</dd></div>' +
+    '<div><dt>Target execution date</dt><dd>' + fmtDate(m.targetExecDate) + '</dd></div>' +
+    '<div><dt>Next action</dt><dd>' + (esc(m.nextAction) || '—') + '</dd></div>' +
+    '</dl></section>' + stageHtml(m, 1);
+}
+
+/* ---------- Family ---------- */
+function familyTriggered(m) {
+  return applicableItems(m).filter(function (i) { return i.type === 'conditional' && i.condition && FIELD_INDEX[i.condition.field] && FIELD_INDEX[i.condition.field].group === 'family'; })
+    .sort(function (a, b) { return a.stage - b.stage; });
+}
+function tabFamily(m) {
+  var items = familyTriggered(m);
+  return '<div class="grid g-2">' +
+    '<section class="card"><div class="card-h"><h2>Family circumstances</h2><span class="aside">Changes save automatically</span></div><div class="card-b">' + profileHtml(PROFILE_GROUPS.family.fields, m.profile, 'live', {}, m.checklist, m.id) + '</div></section>' +
+    '<section class="card"><div class="card-h"><h2>Workflow triggered by family circumstances</h2><span class="aside">' + items.length + ' item' + (items.length === 1 ? '' : 's') + '</span></div>' +
+      (items.length ? '<ul class="items">' + items.map(function (i) { return itemHtml(m, i, true); }).join('') + '</ul>' : emptyRow('No family-related workflow items apply yet. Answer “Yes” to a family question to add them.')) +
+    '</section></div>';
+}
+
+/* ---------- Estate / Beneficiaries (profile editor + stage) ---------- */
+function tabProfileAndStages(m, group, title, stages) {
+  return '<section class="card" style="margin-bottom:16px"><div class="card-h"><h2>' + esc(title) + '</h2><span class="aside">Changes save automatically · “Yes” answers add workflow items below</span></div><div class="card-b">' +
+    profileHtml(PROFILE_GROUPS[group].fields, m.profile, 'live', {}, m.checklist, m.id) + '</div></section>' + stagesHtml(m, stages);
+}
+
+/* ---------- Executors & Guardians ---------- */
+function tabExecutors(m) {
+  var needsGuardian = answerOf(m.profile, 'childrenUnder18') === 'yes';
+  return '<div class="grid g-2" style="margin-bottom:16px">' +
+    '<section class="card"><div class="card-h"><h2>Executors</h2><span class="aside">Changes save automatically</span></div><div class="card-b">' + profileHtml(PROFILE_GROUPS.executors.fields, m.profile, 'live', {}, m.checklist, m.id) + '</div></section>' +
+    '<section class="card"><div class="card-h"><h2>Guardians</h2></div><div class="card-b">' +
+      (needsGuardian ? profileHtml(PROFILE_GROUPS.guardians.fields, m.profile, 'live', {}, m.checklist, m.id)
+        : '<p class="small" style="margin:0">Guardian fields and workflow appear when “Any children under 18?” is answered Yes in the Family tab.</p>') +
+    '</div></section></div>' + stageHtml(m, 2);
+}
+
+/* ---------- Execution ---------- */
+function tabExecution(m) {
+  var execDates = m.dates.filter(function (d) { return d.type === 'Execution date'; });
+  return '<section class="card" style="margin-bottom:16px"><div class="card-h"><h2>Execution</h2><a class="aside" href="#/matter/' + esc(m.id) + '/dates">Manage dates</a></div><dl class="dl">' +
+    '<div><dt>Target execution date</dt><dd>' + (m.targetExecDate ? dueHtml(m.targetExecDate, isExecuted(m)) : '—') + '</dd></div>' +
+    '<div><dt>Execution dates recorded</dt><dd>' + (execDates.length ? execDates.map(function (d) { return fmtDate(d.date) + ' (' + esc(d.status) + ')' + (d.notes ? ' — ' + esc(d.notes) : ''); }).join('<br>') : '—') + '</dd></div>' +
+    '<div><dt>Status</dt><dd>' + esc(m.status) + '</dd></div></dl></section>' + stageHtml(m, 7);
+}
+
+/* =====================================================================
+   14. TASKS / DATES / DOCUMENTS (shared record form)
+   ===================================================================== */
+var REC = {
+  task: { coll: 'tasks', noun: 'Task', fields: [
+      { k: 'name', label: 'Task name', type: 'text', req: true, wide: true },
+      { k: 'description', label: 'Description', type: 'textarea', wide: true },
+      { k: 'category', label: 'Category', type: 'select', options: TASK_CATEGORIES, req: true },
+      { k: 'assignee', label: 'Assignee', type: 'text' },
+      { k: 'priority', label: 'Priority', type: 'select', options: TASK_PRIORITIES, req: true },
+      { k: 'due', label: 'Due date', type: 'date' },
+      { k: 'status', label: 'Status', type: 'select', options: TASK_STATUSES, req: true },
+      { k: 'notes', label: 'Notes', type: 'textarea', wide: true }],
+    defaults: function (m) { return { category: 'Instructions', assignee: m.lawyer, priority: 'Normal', status: 'Not Started' }; } },
+  date: { coll: 'dates', noun: 'Date', fields: [
+      { k: 'type', label: 'Date type', type: 'select', options: DATE_TYPES, req: true },
+      { k: 'label', label: 'Description', type: 'text', hint: 'Required for a custom date' },
+      { k: 'date', label: 'Date', type: 'date', req: true },
+      { k: 'status', label: 'Status', type: 'select', options: DATE_STATUSES, req: true, hint: 'Scheduled dates can become overdue; Done dates are history.' },
+      { k: 'notes', label: 'Notes', type: 'textarea', wide: true }],
+    defaults: function () { return { type: 'Follow-up date', status: 'Scheduled' }; },
+    validate: function (v) { return v.type === 'Custom date' && !v.label ? { label: 'Enter a description for the custom date' } : {}; } },
+  doc: { coll: 'documents', noun: 'Document', fields: [
+      { k: 'name', label: 'Document name', type: 'text', req: true, wide: true },
+      { k: 'type', label: 'Document type', type: 'select', options: DOC_TYPES, req: true },
+      { k: 'date', label: 'Date', type: 'date' },
+      { k: 'status', label: 'Status', type: 'select', options: DOC_STATUSES, req: true },
+      { k: 'notes', label: 'Notes', type: 'textarea', wide: true }],
+    defaults: function () { return { type: 'Draft Will', status: 'In draft', date: todayISO() }; } }
+};
+
+function recFormHtml(m, kind) {
+  var r = ui.rec;
+  if (!r || r.kind !== kind) return '';
+  var spec = REC[kind];
+  var values = r.values || (r.id === 'new' ? spec.defaults(m) : clone(m[spec.coll].filter(function (x) { return x.id === r.id; })[0] || {}));
+  var errors = r.errors || {};
+  return '<form class="panel-form" data-form="rec" data-kind="' + kind + '" data-mid="' + esc(m.id) + '" novalidate autocomplete="off" id="rec-form">' +
+    '<h3>' + (r.id === 'new' ? 'Add ' : 'Edit ') + spec.noun.toLowerCase() + '</h3><div class="form-grid">' +
+    spec.fields.map(function (f) { return fieldHtml(f, values[f.k] || '', errors[f.k], 'r_' + f.k); }).join('') +
+    '</div><div class="actions"><button type="submit" class="btn btn-primary">' + (r.id === 'new' ? 'Add ' + spec.noun.toLowerCase() : 'Save changes') + '</button><button type="button" class="btn btn-secondary" data-action="rec-cancel">Cancel</button></div></form>';
+}
+
+function readRecForm(form, kind) {
+  var spec = REC[kind], values = {}, errors = {};
+  spec.fields.forEach(function (f) {
+    var el = form.elements['r_' + f.k];
+    values[f.k] = el ? String(el.value).trim() : '';
+    if (f.type === 'date' && el && el.validity && el.validity.badInput) errors[f.k] = 'Enter a complete, valid date';
+    else if (f.type === 'date' && values[f.k] && !isValidISO(values[f.k])) errors[f.k] = 'Enter a valid date';
+    else if (f.req && !values[f.k]) errors[f.k] = f.label + ' is required';
+  });
+  if (spec.validate) Object.assign(errors, spec.validate(values));
+  return { values: values, errors: errors };
+}
+
+/* ---------- Tasks ---------- */
+function tabTasks(m) {
+  var today = todayISO();
+  var open = m.tasks.filter(isOpenTask).sort(function (a, b) { return (a.due || '9999').localeCompare(b.due || '9999'); });
+  var closed = m.tasks.filter(function (t) { return !isOpenTask(t); });
+  var ptone = { Low: 'slate', Normal: 'slate', High: 'amber', Urgent: 'red' };
+  var stone = { 'Not Started': 'slate', 'In Progress': 'blue', 'Waiting on Client': 'violet', Completed: 'green', Cancelled: 'slate' };
+  function rows(list) {
+    return list.map(function (t) {
+      var overdue = isOpenTask(t) && t.due && t.due < today;
+      return '<tr id="task-' + esc(t.id) + '"' + (overdue ? ' class="overdue"' : '') + '><td><strong>' + esc(t.name) + '</strong>' + (overdue ? ' ' + badge('OVERDUE', 'red') : '') +
+        (t.description ? '<div class="small">' + esc(t.description) + '</div>' : '') + (t.notes ? '<div class="small" style="margin-top:3px"><em>Note:</em> ' + esc(t.notes) + '</div>' : '') + '</td>' +
+        '<td>' + esc(t.category) + '</td><td class="nowrap">' + (esc(t.assignee) || '—') + '</td><td>' + badge(t.priority, ptone[t.priority]) + '</td>' +
+        '<td>' + (t.due ? dueHtml(t.due, !isOpenTask(t)) : '<span class="small">—</span>') + '</td><td>' + badge(t.status, stone[t.status]) + '</td>' +
+        '<td class="nowrap" style="text-align:right">' + (isOpenTask(t) ? '<button type="button" class="btn btn-secondary btn-xs" data-action="task-complete" data-mid="' + esc(m.id) + '" data-id="' + esc(t.id) + '">Complete</button> ' : '') +
+        '<button type="button" class="linkbtn" data-action="rec-edit" data-kind="task" data-id="' + esc(t.id) + '">Edit</button> · <button type="button" class="linkbtn danger" data-action="rec-delete" data-kind="task" data-mid="' + esc(m.id) + '" data-id="' + esc(t.id) + '">Delete</button></td></tr>';
+    }).join('');
+  }
+  var head = '<thead><tr><th>Task</th><th>Category</th><th>Assignee</th><th>Priority</th><th>Due</th><th>Status</th><th></th></tr></thead>';
+  return recFormHtml(m, 'task') +
+    '<section class="card"><div class="card-h"><h2>Tasks</h2><button type="button" class="btn btn-primary btn-sm" data-action="rec-new" data-kind="task">+ Add task</button></div>' +
+    (m.tasks.length ? '<div class="tbl-wrap"><table class="tbl">' + head + '<tbody>' + (open.length ? rows(open) : '<tr><td colspan="7" class="small">No open tasks.</td></tr>') + '</tbody></table></div>' +
+      (closed.length ? '<div class="rec-group-h grey">Completed / cancelled</div><div class="tbl-wrap"><table class="tbl"><tbody>' + rows(closed) + '</tbody></table></div>' : '')
+      : emptyRow('No tasks yet. Add matter-specific tasks such as “Obtain title search”.')) + '</section>';
+}
+
+/* ---------- Dates ---------- */
+function tabDates(m) {
+  var today = todayISO();
+  var all = m.dates.map(function (d) { return { d: d, derived: false }; });
+  if (m.instructionDate) all.push({ derived: true, d: { id: 'instr', type: 'Instruction date', date: m.instructionDate, status: 'Done', notes: 'From matter details' } });
+  if (m.targetExecDate) all.push({ derived: true, d: { id: 'target', type: 'Execution date', label: 'Target execution date', date: m.targetExecDate, status: isExecuted(m) ? 'Done' : 'Scheduled', notes: 'From matter details' } });
+  var groups = { overdue: [], today: [], upcoming: [], done: [] };
+  all.forEach(function (x) {
+    if (x.d.status === 'Done') groups.done.push(x);
+    else { var diff = daysBetween(today, x.d.date); (diff < 0 ? groups.overdue : diff === 0 ? groups.today : groups.upcoming).push(x); }
+  });
+  var asc = function (a, b) { return a.d.date.localeCompare(b.d.date); };
+  groups.overdue.sort(asc); groups.today.sort(asc); groups.upcoming.sort(asc); groups.done.sort(function (a, b) { return b.d.date.localeCompare(a.d.date); });
+  function rows(list) {
+    return list.map(function (x) {
+      var d = x.d, label = d.type === 'Custom date' ? d.label : (d.label || d.type);
+      return '<tr id="date-' + esc(d.id) + '"><td><strong>' + esc(label) + '</strong>' + (d.type === 'Custom date' ? ' <span class="small">(custom)</span>' : '') + '</td><td>' + dueHtml(d.date, d.status === 'Done') + '</td><td>' + badge(d.status, d.status === 'Done' ? 'green' : 'blue') + '</td>' +
+        '<td class="small">' + esc(d.notes) + '</td><td class="nowrap" style="text-align:right">' +
+        (x.derived ? '<a class="linkbtn" href="#/matter/' + esc(m.id) + '/edit">Edit in matter details</a>'
+          : (d.status !== 'Done' ? '<button type="button" class="btn btn-secondary btn-xs" data-action="date-done" data-mid="' + esc(m.id) + '" data-id="' + esc(d.id) + '">Mark done</button> ' : '') +
+            '<button type="button" class="linkbtn" data-action="rec-edit" data-kind="date" data-id="' + esc(d.id) + '">Edit</button> · <button type="button" class="linkbtn danger" data-action="rec-delete" data-kind="date" data-mid="' + esc(m.id) + '" data-id="' + esc(d.id) + '">Delete</button>') +
+        '</td></tr>';
+    }).join('');
+  }
+  function group(title, tone, list, emptyText) {
+    return '<div class="rec-group-h ' + tone + '">' + title + ' (' + list.length + ')</div>' +
+      (list.length ? '<div class="tbl-wrap"><table class="tbl"><tbody>' + rows(list) + '</tbody></table></div>' : '<div class="empty" style="padding:10px 18px">' + emptyText + '</div>');
+  }
+  return recFormHtml(m, 'date') +
+    '<section class="card"><div class="card-h"><h2>Dates &amp; deadlines</h2><button type="button" class="btn btn-primary btn-sm" data-action="rec-new" data-kind="date">+ Add date</button></div>' +
+    group('Overdue', 'red', groups.overdue, 'Nothing overdue.') + group('Due today', 'amber', groups.today, 'Nothing due today.') +
+    group('Upcoming', 'blue', groups.upcoming, 'No upcoming dates.') + group('Done / past', 'grey', groups.done, 'None recorded.') + '</section>';
+}
+
+/* ---------- Documents ---------- */
+function tabDocuments(m) {
+  var docs = m.documents.slice().sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
+  return recFormHtml(m, 'doc') +
+    '<div class="alert info">Document register only. Files are not uploaded or stored by this prototype — keep documents in the firm’s document management system and record them here.</div>' +
+    '<section class="card"><div class="card-h"><h2>Document register</h2><button type="button" class="btn btn-primary btn-sm" data-action="rec-new" data-kind="doc">+ Add document</button></div>' +
+    (docs.length ? '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Document</th><th>Type</th><th>Date</th><th>Status</th><th>Notes</th><th></th></tr></thead><tbody>' + docs.map(function (d) {
+      return '<tr id="doc-' + esc(d.id) + '"><td><strong>' + esc(d.name) + '</strong></td><td>' + esc(d.type) + '</td><td class="nowrap">' + fmtDate(d.date) + '</td><td>' + badge(d.status, d.status === 'Signed' || d.status === 'Stored' || d.status === 'Final' ? 'green' : d.status === 'Superseded' ? 'slate' : 'blue') + '</td>' +
+        '<td class="small">' + esc(d.notes) + '</td><td class="nowrap" style="text-align:right"><button type="button" class="linkbtn" data-action="rec-edit" data-kind="doc" data-id="' + esc(d.id) + '">Edit</button> · <button type="button" class="linkbtn danger" data-action="rec-delete" data-kind="doc" data-mid="' + esc(m.id) + '" data-id="' + esc(d.id) + '">Delete</button></td></tr>';
+    }).join('') + '</tbody></table></div>' : emptyRow('No documents recorded yet.')) + '</section>';
+}
+
+/* ---------- Notes ---------- */
+function tabNotes(m) {
+  var notes = m.notes.slice().sort(function (a, b) { return b.createdAt.localeCompare(a.createdAt); });
+  return '<section class="card" style="margin-bottom:16px"><div class="card-h"><h2>Add note</h2></div><form class="card-b" data-form="note-add" data-mid="' + esc(m.id) + '" novalidate>' +
+      '<div class="form-grid"><div class="field"><label class="lbl" for="note-author">Author</label><input class="input" id="note-author" name="author" value="' + esc(db.settings.author) + '"></div><div></div>' +
+      '<div class="field wide"><label class="lbl" for="note-text">Note <span class="req">*</span></label><textarea class="input" id="note-text" name="text" rows="3" placeholder="e.g. Client wants house to pass to daughter but wants son to receive equalisation payment."></textarea><div class="error" id="note-error" hidden>Enter a note</div></div></div>' +
+      '<div style="margin-top:12px"><button type="submit" class="btn btn-primary">Add note</button> <span class="small">Date and time are recorded automatically.</span></div></form></section>' +
+    '<section class="card"><div class="card-h"><h2>Matter notes</h2><span class="aside">' + notes.length + ' note' + (notes.length === 1 ? '' : 's') + ' · newest first</span></div>' +
+    (notes.length ? notes.map(function (n) {
+      if (ui.noteEdit === n.id) {
+        return '<form class="note-card" data-form="note-save" data-mid="' + esc(m.id) + '" data-id="' + esc(n.id) + '" id="note-' + esc(n.id) + '"><div class="nh"><span>' + fmtDateTime(n.createdAt) + ' · ' + esc(n.author) + '</span></div>' +
+          '<textarea class="input" name="text" rows="4" aria-label="Edit note">' + esc(n.text) + '</textarea><div style="display:flex;gap:6px;margin-top:8px"><button class="btn btn-primary btn-sm" type="submit">Save</button><button class="btn btn-ghost btn-sm" type="button" data-action="note-cancel">Cancel</button></div></form>';
+      }
+      return '<div class="note-card" id="note-' + esc(n.id) + '"><div class="nh"><span><strong style="color:var(--ink-2)">' + fmtDateTime(n.createdAt) + '</strong> · ' + esc(n.author) + (n.updatedAt ? ' · edited ' + fmtDateTime(n.updatedAt) : '') + '</span>' +
+        '<span class="nowrap"><button type="button" class="linkbtn" data-action="note-edit" data-id="' + esc(n.id) + '">Edit</button> · <button type="button" class="linkbtn danger" data-action="note-delete" data-mid="' + esc(m.id) + '" data-id="' + esc(n.id) + '">Delete</button></span></div>' +
+        '<div class="nb">' + esc(n.text) + '</div></div>';
+    }).join('') : emptyRow('No notes yet.')) + '</section>';
+}
+
+/* =====================================================================
+   15. CHECKLIST TEMPLATE EDITOR
+   ===================================================================== */
+function tplFormHtml() {
+  var t = ui.tpl;
+  if (!t) return '';
+  var item = t.id !== 'new' ? db.template.filter(function (x) { return x.id === t.id; })[0] : null;
+  var v = t.values || (item ? { stage: String(item.stage), text: item.text, guidance: item.guidance, type: item.type, field: item.condition ? item.condition.field : '', equals: item.condition ? item.condition.equals : 'yes' }
+    : { stage: String(t.stage || 1), text: '', guidance: '', type: 'core', field: '', equals: 'yes' });
+  var e = t.errors || {};
+  var stageOpts = STAGES.map(function (s) { return { v: String(s.n), l: 'Stage ' + s.n + ' — ' + s.name }; });
+  var condOpts = CONDITION_FIELDS.map(function (k) { return { v: k, l: fieldLabel(k) }; });
+  return '<form class="panel-form" data-form="tpl" novalidate id="tpl-form"><h3>' + (item ? 'Edit checklist item' : 'Add checklist item') + '</h3><div class="form-grid">' +
+    fieldHtml({ label: 'Stage', type: 'select', options: stageOpts, req: true }, v.stage, e.stage, 't_stage') +
+    fieldHtml({ label: 'Workflow type', type: 'select', options: [{ v: 'core', l: 'Core — applies to every matter' }, { v: 'conditional', l: 'Conditional — triggered by client circumstances' }], req: true }, v.type, e.type, 't_type') +
+    fieldHtml({ label: 'Checklist item', type: 'text', req: true, wide: true, placeholder: 'e.g. Review BDBN', hint: 'Use prompt wording: Consider…, Confirm…, Record…, Check per firm procedure…' }, v.text, e.text, 't_text') +
+    fieldHtml({ label: 'Guidance (optional)', type: 'textarea', wide: true }, v.guidance, e.guidance, 't_guidance') +
+    '<div class="wide" data-cond-wrap' + (v.type === 'conditional' ? '' : ' hidden') + '><div class="form-grid">' +
+      fieldHtml({ label: 'Condition — when this question…', type: 'select', options: condOpts, blank: 'Choose a question…' }, v.field, e.field, 't_field') +
+      fieldHtml({ label: '…is answered', type: 'select', options: [{ v: 'yes', l: 'Yes' }, { v: 'no', l: 'No' }], req: true }, v.equals, null, 't_equals') +
+    '</div></div></div>' +
+    '<div class="actions"><button type="submit" class="btn btn-primary">' + (item ? 'Save item' : 'Add to template') + '</button><button type="button" class="btn btn-secondary" data-action="tpl-cancel">Cancel</button></div></form>';
+}
+
+function viewTemplate() {
+  var total = db.template.length, cond = db.template.filter(function (t) { return t.type === 'conditional'; }).length;
+  var stagesHtml = STAGES.map(function (s) {
+    var items = db.template.filter(function (t) { return t.stage === s.n; });
+    return '<section class="stage"><div class="stage-h"><div class="grow"><div class="n">Stage ' + s.n + '</div><h3>' + esc(s.name) + '</h3></div>' +
+      '<span class="small">' + items.length + ' items</span><button type="button" class="btn btn-ghost btn-sm" data-action="tpl-new" data-stage="' + s.n + '">+ Add</button></div>' +
+      (items.length ? '<div>' + items.map(function (t, i) {
+        return '<div class="tpl-item" id="tpl-' + esc(t.id) + '"><span class="ix">' + (i + 1) + '.</span><div class="body"><div>' + esc(t.text) + '</div>' +
+          (t.guidance ? '<div class="small">' + esc(t.guidance) + '</div>' : '') +
+          '<div style="margin-top:4px">' + (t.type === 'conditional' ? '<span class="trig" style="font-size:11.5px">Conditional: ' + esc(conditionText(t.condition)) + '</span>' : '<span class="badge b-slate" style="font-size:11px">Core</span>') + '</div></div>' +
+          '<div class="acts"><button type="button" class="btn btn-ghost btn-xs" data-action="tpl-move" data-dir="-1" data-id="' + esc(t.id) + '"' + (i === 0 ? ' disabled' : '') + ' aria-label="Move up">' + ICON.up + '</button>' +
+          '<button type="button" class="btn btn-ghost btn-xs" data-action="tpl-move" data-dir="1" data-id="' + esc(t.id) + '"' + (i === items.length - 1 ? ' disabled' : '') + ' aria-label="Move down">' + ICON.down + '</button>' +
+          '<button type="button" class="btn btn-ghost btn-xs" data-action="tpl-edit" data-id="' + esc(t.id) + '">Edit</button>' +
+          '<button type="button" class="btn btn-ghost btn-xs" style="color:var(--red)" data-action="tpl-delete" data-id="' + esc(t.id) + '">Delete</button></div></div>';
+      }).join('') + '</div>' : emptyRow('No items in this stage.')) + '</section>';
+  }).join('');
+  return '<div class="page-head"><div><h1>Checklist Template</h1><div class="sub">' + total + ' items · ' + (total - cond) + ' core · ' + cond + ' conditional</div></div>' +
+    '<div style="display:flex;gap:8px"><button type="button" class="btn btn-secondary" data-action="tpl-restore">Restore default template</button><button type="button" class="btn btn-primary" data-action="tpl-new" data-stage="1">+ Add checklist item</button></div></div>' +
+    '<div class="alert info">Changes here apply to <strong>newly created matters only</strong>. Existing matters keep the checklist they were created with. ' +
+    'Conditional items appear on a matter only when its answer matches the condition (for example “Has BDBN = Yes”). Items are workflow prompts, not legal advice — align them with firm precedents and procedures.</div>' +
+    tplFormHtml() + stagesHtml;
+}
+
+/* =====================================================================
+   16. ROUTER & RENDER
+   ===================================================================== */
+function parseRoute() {
+  var parts = (location.hash || '').replace(/^#\/?/, '').split('/').filter(Boolean);
+  if (!parts.length) return { page: 'dashboard' };
+  if (parts[0] === 'matter' && parts[1]) {
+    if (parts[2] === 'edit') return { page: 'edit', id: parts[1] };
+    return { page: 'matter', id: parts[1], tab: parts[2] || 'overview' };
+  }
+  if (['dashboard', 'matters', 'new', 'template'].indexOf(parts[0]) !== -1) return { page: parts[0] };
+  return { page: 'notfound' };
+}
+
+function notFound(msg) {
+  return '<div class="card" style="max-width:520px;margin:40px auto;padding:28px;text-align:center"><h1 style="font-family:var(--serif);font-size:20px">Not found</h1><p class="small">' + esc(msg) + '</p><a class="btn btn-primary" href="#/dashboard">Back to dashboard</a></div>';
+}
+
+function render() {
+  var r = parseRoute(), html, nav = r.page, title = 'Wills Matter Dashboard';
+  if (r.page === 'dashboard') html = viewDashboard();
+  else if (r.page === 'matters') html = viewMatters();
+  else if (r.page === 'new') html = viewMatterForm('new', null), title = 'New Matter';
+  else if (r.page === 'template') html = viewTemplate(), title = 'Checklist Template';
+  else if (r.page === 'matter' || r.page === 'edit') {
+    var m = findMatter(r.id);
+    nav = 'matters';
+    if (!m) html = notFound('That matter does not exist. It may have been deleted, or the data was reset.');
+    else if (r.page === 'edit') html = viewMatterForm('edit', m), title = m.client + ' — Edit';
+    else if (!TABS.some(function (t) { return t.k === r.tab; })) html = notFound('That section does not exist.');
+    else html = viewMatter(m, r.tab), title = m.client + ' (' + m.matterNo + ')';
+  } else html = notFound('That page does not exist.');
+
+  document.getElementById('main').innerHTML = html;
+  document.title = title + ' — Wills Prototype';
+  Array.prototype.forEach.call(document.querySelectorAll('[data-nav]'), function (a) {
+    var on = a.getAttribute('data-nav') === nav;
+    a.classList.toggle('active', on);
+    if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+  });
+  if (ui.highlight) {
+    var el = document.getElementById(ui.highlight);
+    ui.highlight = null;
+    if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('flash'); }
+  }
+}
+
+function refreshTable(scope) {
+  var el = document.getElementById('tbl-' + scope);
+  if (el) el.innerHTML = matterTableHtml(scope);
+}
+
+function go(hash, highlight) {
+  resetTransient();
+  ui.highlight = highlight || null;
+  if (location.hash === hash) { render(); if (!highlight) window.scrollTo(0, 0); }
+  else location.hash = hash;
+}
+
+function toast(msg, isErr) {
+  var box = document.getElementById('toast');
+  if (!box) return;
+  var el = document.createElement('div');
+  el.className = 'toast' + (isErr ? ' err' : '');
+  el.textContent = msg;
+  box.appendChild(el);
+  setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, isErr ? 6000 : 3000);
+}
+
+/** Save after a change to a matter and re-render the current view. */
+function commit(m, msg) {
+  if (m) touch(m);
+  saveData();
+  render();
+  if (msg) toast(msg);
+}
+
+/* =====================================================================
+   17. ACTIONS (buttons with data-action)
+   ===================================================================== */
+function getItem(m, iid) { return m.checklist.filter(function (i) { return i.id === iid; })[0]; }
+function focusSoon(sel) { setTimeout(function () { var el = document.querySelector(sel); if (el) { el.scrollIntoView({ block: 'center' }); el.focus(); } }, 0); }
+
+var ACTIONS = {
+  'open-matter': function (el, ev) { if (ev.target.closest('a')) return; go('#/matter/' + el.dataset.id); },
+  'dash-flag': function (el) {
+    ui.filters.dash.flag = el.dataset.flag; ui.filters.dash.status = 'active';
+    render();
+    var t = document.getElementById('dash-table'); if (t) t.scrollIntoView({ block: 'start' });
+  },
+  'clear-filters': function (el) {
+    var s = el.dataset.scope;
+    ui.filters[s] = s === 'dash' ? { q: '', status: 'active', urgency: '', flag: '', sort: 'date' } : { q: '', status: '', urgency: '', flag: '', sort: 'client' };
+    render();
+  },
+  'continue': function (el) {
+    var m = findMatter(el.dataset.mid), it = m && nextOpenItem(m);
+    if (it) go('#/matter/' + m.id + '/' + tabForStage(it.stage), 'item-' + it.id);
+  },
+  'goto': function (el) { go('#/matter/' + el.dataset.mid + '/' + el.dataset.tab, el.dataset.anchor || null); },
+
+  // Checklist
+  'item-toggle': function (el) {
+    var m = findMatter(el.dataset.mid), it = m && getItem(m, el.dataset.iid);
+    if (!it || it.state === 'na') return;
+    it.state = it.state === 'done' ? 'open' : 'done';
+    it.stateAt = it.state === 'done' ? nowTs() : null;
+    ui.highlight = null;
+    commit(m);
+  },
+  'item-na': function (el) {
+    var m = findMatter(el.dataset.mid), it = m && getItem(m, el.dataset.iid);
+    if (!it) return;
+    it.state = it.state === 'na' ? 'open' : 'na';
+    it.stateAt = it.state === 'na' ? nowTs() : null;
+    commit(m, it.state === 'na' ? 'Marked not applicable' : 'Item restored');
+  },
+  'item-note-open': function (el) { ui.openNote = el.dataset.iid; render(); focusSoon('#item-' + el.dataset.iid + ' textarea'); },
+  'item-note-cancel': function () { ui.openNote = null; render(); },
+  'item-note-remove': function (el) {
+    var m = findMatter(el.dataset.mid), it = m && getItem(m, el.dataset.iid);
+    if (!it) return;
+    it.note = ''; it.noteAt = nowTs(); ui.openNote = null;
+    commit(m, 'Note removed');
+  },
+
+  // Tasks / dates / documents
+  'rec-new': function (el) { ui.rec = { kind: el.dataset.kind, id: 'new' }; render(); focusSoon('#rec-form input, #rec-form select'); },
+  'rec-edit': function (el) { ui.rec = { kind: el.dataset.kind, id: el.dataset.id }; render(); focusSoon('#rec-form input, #rec-form select'); },
+  'rec-cancel': function () { ui.rec = null; render(); },
+  'rec-delete': function (el) {
+    var m = findMatter(el.dataset.mid), spec = REC[el.dataset.kind];
+    var rec = m[spec.coll].filter(function (x) { return x.id === el.dataset.id; })[0];
+    if (!rec || !window.confirm('Delete this ' + spec.noun.toLowerCase() + '?\n\n' + (rec.name || rec.label || rec.type))) return;
+    m[spec.coll] = m[spec.coll].filter(function (x) { return x.id !== el.dataset.id; });
+    if (ui.rec && ui.rec.id === el.dataset.id) ui.rec = null;
+    commit(m, spec.noun + ' deleted');
+  },
+  'task-complete': function (el) {
+    var m = findMatter(el.dataset.mid), t = m && m.tasks.filter(function (x) { return x.id === el.dataset.id; })[0];
+    if (!t) return;
+    t.status = 'Completed'; t.updatedAt = nowTs();
+    commit(m, 'Task completed');
+  },
+  'date-done': function (el) {
+    var m = findMatter(el.dataset.mid), d = m && m.dates.filter(function (x) { return x.id === el.dataset.id; })[0];
+    if (!d) return;
+    d.status = 'Done';
+    commit(m, 'Date marked done');
+  },
+
+  // Notes
+  'note-edit': function (el) { ui.noteEdit = el.dataset.id; render(); focusSoon('#note-' + el.dataset.id + ' textarea'); },
+  'note-cancel': function () { ui.noteEdit = null; render(); },
+  'note-delete': function (el) {
+    var m = findMatter(el.dataset.mid);
+    if (!m || !window.confirm('Delete this note?')) return;
+    m.notes = m.notes.filter(function (n) { return n.id !== el.dataset.id; });
+    commit(m, 'Note deleted');
+  },
+
+  // Matter
+  'matter-delete': function (el) {
+    var m = findMatter(el.dataset.id);
+    if (!m || !window.confirm('Delete matter ' + m.matterNo + ' (' + m.client + ')?\n\nThis removes its checklist, tasks, dates, notes and document register. This cannot be undone (unless you have an export).')) return;
+    db.matters = db.matters.filter(function (x) { return x.id !== m.id; });
+    saveData();
+    go('#/matters');
+    toast('Matter deleted');
+  },
+
+  // Template
+  'tpl-new': function (el) { ui.tpl = { id: 'new', stage: Number(el.dataset.stage) || 1 }; render(); focusSoon('#tpl-form [name="t_text"]'); },
+  'tpl-edit': function (el) { ui.tpl = { id: el.dataset.id }; render(); focusSoon('#tpl-form [name="t_text"]'); },
+  'tpl-cancel': function () { ui.tpl = null; render(); },
+  'tpl-delete': function (el) {
+    var t = db.template.filter(function (x) { return x.id === el.dataset.id; })[0];
+    if (!t || !window.confirm('Delete this item from the template?\n\n“' + t.text + '”\n\nExisting matters are not affected.')) return;
+    db.template = db.template.filter(function (x) { return x.id !== t.id; });
+    if (ui.tpl && ui.tpl.id === t.id) ui.tpl = null;
+    commit(null, 'Template item deleted');
+  },
+  'tpl-move': function (el) {
+    var id = el.dataset.id, dir = Number(el.dataset.dir);
+    var idx = db.template.findIndex(function (x) { return x.id === id; });
+    if (idx < 0) return;
+    var stage = db.template[idx].stage, j = idx + dir;
+    while (j >= 0 && j < db.template.length && db.template[j].stage !== stage) j += dir;
+    if (j < 0 || j >= db.template.length) return;
+    var tmp = db.template[idx]; db.template[idx] = db.template[j]; db.template[j] = tmp;
+    ui.highlight = 'tpl-' + id;
+    commit(null);
+  },
+  'tpl-restore': function () {
+    if (!window.confirm('Replace the checklist template with the original default template?\n\nYour template changes will be lost. Existing matters are not affected.')) return;
+    db.template = defaultTemplate(); ui.tpl = null;
+    commit(null, 'Default template restored');
+  },
+
+  // Data
+  'export': function () { exportData(); },
+  'import': function () { var f = document.getElementById('import-file'); f.value = ''; f.click(); },
+  'reset': function () {
+    if (!window.confirm('Reset Sample Data?\n\nThis DELETES all matters, checklist progress, tasks, dates, notes, documents and template changes in this browser, and reloads the fictional sample data.\n\nUse Export Data first if you want to keep a copy.')) return;
+    db = freshData(); saveData();
+    ui.filters.dash = { q: '', status: 'active', urgency: '', flag: '', sort: 'date' };
+    ui.filters.matters = { q: '', status: '', urgency: '', flag: '', sort: 'client' };
+    go('#/dashboard');
+    toast('Sample data has been reset');
+  }
+};
+
+/* =====================================================================
+   18. FORMS (data-form)
+   ===================================================================== */
+var FORMS = {
+  matter: function (form) {
+    var mode = form.dataset.mode, existing = mode === 'edit' ? findMatter(form.dataset.mid) : null;
+    var r = readMatterForm(form, mode, existing);
+    if (Object.keys(r.errors).length) {
+      ui.form = r;
+      render();
+      var first = document.querySelector('[aria-invalid="true"]') || document.querySelector('.alert');
+      if (first) { first.scrollIntoView({ block: 'center' }); if (first.focus) first.focus(); }
+      return;
+    }
+    if (existing) {
+      Object.keys(r.values).forEach(function (k) { existing[k] = r.values[k]; });
+      Object.keys(r.profile).forEach(function (k) { existing.profile[k] = r.profile[k]; });
+      touch(existing); saveData();
+      go('#/matter/' + existing.id);
+      toast('Matter updated');
+    } else {
+      var m = newMatter(r.values, r.profile, db.template);
+      db.matters.push(m); saveData();
+      go('#/matter/' + m.id);
+      toast('Matter created');
+    }
+  },
+  'item-note': function (form) {
+    var m = findMatter(form.dataset.mid), it = m && getItem(m, form.dataset.iid);
+    if (!it) return;
+    var text = form.elements.note.value.trim();
+    if (text.length > 5000) { toast('Notes are limited to 5,000 characters', true); return; }
+    it.note = text; it.noteAt = nowTs(); ui.openNote = null;
+    commit(m, text ? 'Note saved' : 'Note removed');
+  },
+  rec: function (form) {
+    var m = findMatter(form.dataset.mid), kind = form.dataset.kind, spec = REC[kind];
+    var r = readRecForm(form, kind);
+    if (Object.keys(r.errors).length) { ui.rec.values = r.values; ui.rec.errors = r.errors; render(); focusSoon('#rec-form [aria-invalid="true"]'); return; }
+    var ts = nowTs();
+    if (ui.rec.id === 'new') {
+      var rec = Object.assign({ id: uid(kind), createdAt: ts, updatedAt: ts }, r.values);
+      m[spec.coll].push(rec);
+    } else {
+      var existing = m[spec.coll].filter(function (x) { return x.id === ui.rec.id; })[0];
+      if (existing) Object.assign(existing, r.values, { updatedAt: ts });
+    }
+    var isNew = ui.rec.id === 'new';
+    ui.rec = null;
+    commit(m, spec.noun + (isNew ? ' added' : ' updated'));
+  },
+  'note-add': function (form) {
+    var m = findMatter(form.dataset.mid);
+    var text = form.elements.text.value.trim(), author = form.elements.author.value.trim() || 'Local user';
+    if (!text) { var e = document.getElementById('note-error'); e.hidden = false; form.elements.text.classList.add('err'); form.elements.text.focus(); return; }
+    m.notes.push({ id: uid('n'), author: author, text: text, createdAt: nowTs(), updatedAt: null });
+    db.settings.author = author;
+    commit(m, 'Note added');
+  },
+  'note-save': function (form) {
+    var m = findMatter(form.dataset.mid), n = m && m.notes.filter(function (x) { return x.id === form.dataset.id; })[0];
+    if (!n) return;
+    var text = form.elements.text.value.trim();
+    if (!text) { toast('A note cannot be empty — use Delete to remove it', true); return; }
+    n.text = text; n.updatedAt = nowTs(); ui.noteEdit = null;
+    commit(m, 'Note updated');
+  },
+  tpl: function (form) {
+    var v = {
+      stage: form.elements.t_stage.value, type: form.elements.t_type.value, text: form.elements.t_text.value.trim(),
+      guidance: form.elements.t_guidance.value.trim(), field: form.elements.t_field.value, equals: form.elements.t_equals.value
+    };
+    var e = {};
+    if (!v.text) e.text = 'Checklist item text is required';
+    if (!(Number(v.stage) >= 1 && Number(v.stage) <= 7)) e.stage = 'Choose a stage';
+    if (v.type === 'conditional' && CONDITION_FIELDS.indexOf(v.field) === -1) e.field = 'Choose the question that triggers this item';
+    if (Object.keys(e).length) { ui.tpl.values = v; ui.tpl.errors = e; render(); return; }
+    var data = { stage: Number(v.stage), text: v.text, guidance: v.guidance, type: v.type, condition: v.type === 'conditional' ? { field: v.field, equals: v.equals === 'no' ? 'no' : 'yes' } : null };
+    var id;
+    if (ui.tpl.id === 'new') {
+      id = uid('tpl'); db.template.push(Object.assign({ id: id, key: null }, data));
+    } else {
+      id = ui.tpl.id;
+      var idx = db.template.findIndex(function (x) { return x.id === id; });
+      if (idx >= 0) {
+        var moved = db.template[idx].stage !== data.stage;
+        Object.assign(db.template[idx], data);
+        if (moved) { var it = db.template.splice(idx, 1)[0]; db.template.push(it); } // moved items go to the end of their new stage
+      }
+    }
+    var isNew = ui.tpl.id === 'new';
+    ui.tpl = null; ui.highlight = 'tpl-' + id;
+    commit(null, isNew ? 'Item added to template' : 'Template item updated');
+  }
+};
+
+/* =====================================================================
+   19. EXPORT / IMPORT
+   ===================================================================== */
+function exportData() {
+  var payload = JSON.stringify(Object.assign({}, db, { exportedAt: nowTs() }), null, 2);
+  var blob = new Blob([payload], { type: 'application/json' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'wills-dashboard-export-' + todayISO() + '.json';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  toast('Export downloaded — check your Downloads folder');
+}
+
+function importFile(file) {
+  if (!file) return;
+  if (file.size > 20 * 1024 * 1024) { toast('That file is too large to be a prototype export.', true); return; }
+  var reader = new FileReader();
+  reader.onload = function () {
+    var data;
+    try { data = JSON.parse(String(reader.result)); } catch (e) { toast('Import failed: the file is not valid JSON.', true); return; }
+    var err = validateData(data);
+    if (err) { toast('Import failed: ' + err, true); return; }
+    if (!window.confirm('Import ' + data.matters.length + ' matter(s) and the checklist template from “' + file.name + '”?\n\nThis REPLACES all current data in this browser.')) return;
+    delete data.exportedAt;
+    db = data; saveData();
+    go('#/dashboard');
+    toast('Imported ' + data.matters.length + ' matter(s)');
+  };
+  reader.onerror = function () { toast('Import failed: the file could not be read.', true); };
+  reader.readAsText(file);
+}
+
+/* =====================================================================
+   20. EVENT WIRING
+   ===================================================================== */
+document.addEventListener('click', function (ev) {
+  var el = ev.target.closest('[data-action]');
+  if (!el || el.disabled) return;
+  var fn = ACTIONS[el.dataset.action];
+  if (!fn) return;
+  if (el.tagName === 'A' || el.tagName === 'BUTTON') ev.preventDefault();
+  fn(el, ev);
+});
+
+document.addEventListener('keydown', function (ev) {
+  if (ev.key === 'Enter' && ev.target.matches && ev.target.matches('tr[data-action="open-matter"]')) go('#/matter/' + ev.target.dataset.id);
+});
+
+document.addEventListener('submit', function (ev) {
+  var fn = FORMS[ev.target.dataset.form];
+  if (fn) { ev.preventDefault(); fn(ev.target); }
+});
+
+var searchTimer = null;
+document.addEventListener('input', function (ev) {
+  var t = ev.target;
+  if (t.dataset && t.dataset.filter && /\.q$/.test(t.dataset.filter)) {
+    var parts = t.dataset.filter.split('.');
+    ui.filters[parts[0]].q = t.value;
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function () { refreshTable(parts[0]); }, 150);
+  }
+});
+
+document.addEventListener('change', function (ev) {
+  var t = ev.target, ds = t.dataset || {};
+
+  if (t.id === 'import-file') { importFile(t.files && t.files[0]); return; }
+
+  // Table filters
+  if (ds.filter && !/\.q$/.test(ds.filter)) {
+    var p = ds.filter.split('.');
+    ui.filters[p[0]][p[1]] = t.value;
+    refreshTable(p[0]);
+    return;
+  }
+
+  // Matter header status / urgency
+  if (ds.hdr) {
+    var hm = findMatter(ds.mid);
+    if (hm) { hm[ds.hdr] = t.value; commit(hm, (ds.hdr === 'status' ? 'Status' : 'Urgency') + ' updated'); }
+    return;
+  }
+
+  // Live client-circumstance editors in the workspace
+  if (ds.pf) {
+    var m = findMatter(ds.mid), def = FIELD_INDEX[ds.pf] && FIELD_INDEX[ds.pf].def;
+    if (!m || !def) return;
+    if (def.type === 'date' && t.validity && t.validity.badInput) { toast('Enter a complete, valid date', true); return; }
+    if (def.type === 'number' && t.value !== '' && !/^\d{1,2}$/.test(t.value)) { toast('Enter a whole number between 0 and 50', true); return; }
+    m.profile[ds.pf] = t.type === 'radio' ? t.value : t.value.trim();
+    touch(m);
+    saveData();
+    if (def.type === 'yn') {
+      var before = window.scrollY;
+      render();
+      window.scrollTo(0, before);
+      var n = triggerCount(m.checklist, ds.pf);
+      toast(n ? (t.value === 'yes' ? 'Workflow updated — ' + n + ' related item' + (n === 1 ? '' : 's') + ' now apply' : 'Workflow updated — related items no longer apply') : 'Saved');
+    } else {
+      toast('Saved');
+    }
+    return;
+  }
+
+  // New/Edit Matter form: show/hide conditional sub-questions without losing input
+  var form = t.closest && t.closest('form[data-form="matter"]');
+  if (form && t.type === 'radio' && t.name.indexOf('p_') === 0) {
+    var key = t.name.slice(2);
+    var wrap = form.querySelector('[data-show-if="' + key + '"]');
+    if (wrap) wrap.hidden = t.value !== 'yes';
+    return;
+  }
+
+  // Template form: show condition fields only for conditional items
+  if (t.name === 't_type') {
+    var cw = document.querySelector('[data-cond-wrap]');
+    if (cw) cw.hidden = t.value !== 'conditional';
+  }
+});
+
+window.addEventListener('hashchange', function () {
+  var keepHighlight = ui.highlight;
+  resetTransient();
+  ui.highlight = keepHighlight;
+  render();
+  if (!keepHighlight) window.scrollTo(0, 0);
+});
+
+// Keep multiple open tabs of this file in sync.
+window.addEventListener('storage', function (ev) {
+  if (ev.key !== STORE_KEY || !ev.newValue) return;
+  try { var d = JSON.parse(ev.newValue); if (!validateData(d)) { db = d; render(); toast('Data updated in another tab'); } } catch (e) { /* ignore */ }
+});
+
+/* =====================================================================
+   21. START
+   ===================================================================== */
+loadData();
+if (!location.hash) history.replaceState(null, '', '#/dashboard');
+render();
+
+</script>
+</body>
+</html>
